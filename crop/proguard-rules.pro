@@ -1,0 +1,1 @@
+# SpoonCrop library proguard rules
