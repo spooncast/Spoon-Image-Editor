@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "spoon-crop-android"
+rootProject.name = "Spoon-Image-Editor"
 include(":crop", ":sample")

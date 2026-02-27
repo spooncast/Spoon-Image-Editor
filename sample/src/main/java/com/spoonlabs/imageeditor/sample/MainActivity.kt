@@ -1,4 +1,4 @@
-package com.spoonlabs.crop.sample
+package com.spoonlabs.imageeditor.sample
 
 import android.net.Uri
 import android.os.Bundle
@@ -45,9 +45,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.spoonlabs.crop.CropConfig
-import com.spoonlabs.crop.CropContract
-import com.spoonlabs.crop.CropResult
+import com.spoonlabs.imageeditor.CropConfig
+import com.spoonlabs.imageeditor.CropContract
+import com.spoonlabs.imageeditor.CropResult
 import java.io.File
 
 class MainActivity : ComponentActivity() {

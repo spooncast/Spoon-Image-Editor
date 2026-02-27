@@ -1,4 +1,4 @@
-package com.spoonlabs.crop.component
+package com.spoonlabs.imageeditor.component
 
 import android.graphics.Bitmap
 import android.graphics.RectF

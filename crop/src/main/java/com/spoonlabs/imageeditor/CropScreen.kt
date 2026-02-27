@@ -1,4 +1,4 @@
-package com.spoonlabs.crop
+package com.spoonlabs.imageeditor
 
 import android.graphics.Bitmap
 import android.graphics.RectF
@@ -48,11 +48,11 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.spoonlabs.crop.component.AdjustPanel
-import com.spoonlabs.crop.component.AspectRatio
-import com.spoonlabs.crop.component.AspectRatioSelector
-import com.spoonlabs.crop.component.CropArea
-import com.spoonlabs.crop.component.RotationSlider
+import com.spoonlabs.imageeditor.component.AdjustPanel
+import com.spoonlabs.imageeditor.component.AspectRatio
+import com.spoonlabs.imageeditor.component.AspectRatioSelector
+import com.spoonlabs.imageeditor.component.CropArea
+import com.spoonlabs.imageeditor.component.RotationSlider
 
 private val AccentColor = Color(0xFFF06B24)
 private val PillBg = Color(0xFF2A2A2A)

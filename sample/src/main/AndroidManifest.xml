@@ -6,7 +6,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SpoonCropSample">
         <activity
-            android:name="com.spoonlabs.crop.sample.MainActivity"
+            android:name="com.spoonlabs.imageeditor.sample.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

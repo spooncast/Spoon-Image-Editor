@@ -1,4 +1,4 @@
-package com.spoonlabs.crop.component
+package com.spoonlabs.imageeditor.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

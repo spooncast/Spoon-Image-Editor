@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.spoonlabs.crop"
+    namespace = "com.spoonlabs.imageeditor"
     compileSdk = 35
 
     defaultConfig {
@@ -66,7 +66,7 @@ publishing {
     publications {
         register<MavenPublication>("release") {
             groupId = "com.spoonlabs"
-            artifactId = "crop"
+            artifactId = "imageeditor"
             version = "0.1.0"
 
             afterEvaluate {

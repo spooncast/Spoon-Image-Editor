@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.spoonlabs.crop.sample"
+    namespace = "com.spoonlabs.imageeditor.sample"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.spoonlabs.crop.sample"
+        applicationId = "com.spoonlabs.imageeditor.sample"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

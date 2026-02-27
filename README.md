@@ -25,7 +25,7 @@ repositories {
 
 // build.gradle.kts
 dependencies {
-    implementation("com.spoonlabs:crop:0.1.0")
+    implementation("com.spoonlabs:imageeditor:0.1.0")
 }
 ```
 

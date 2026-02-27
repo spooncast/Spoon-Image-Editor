@@ -1,4 +1,4 @@
-package com.spoonlabs.crop
+package com.spoonlabs.imageeditor
 
 import android.app.Activity
 import android.content.Context

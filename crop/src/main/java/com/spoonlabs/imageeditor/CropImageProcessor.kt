@@ -1,4 +1,4 @@
-package com.spoonlabs.crop
+package com.spoonlabs.imageeditor
 
 import android.content.Context
 import android.graphics.Bitmap
