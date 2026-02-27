@@ -72,6 +72,7 @@ internal fun CropScreen(
     val iconColor = SpoonTheme.colors.iconFixedWhite
     val borderColor = SpoonTheme.colors.borderAlphaWhite200
     val scrimColor = SpoonTheme.colors.backgroundScrim200
+    val panelColor = Color(0xFF262626) // Gray850 — 테마 무관 고정 색상
 
     var activePanel by remember { mutableStateOf(ActivePanel.NONE) }
 
@@ -114,13 +115,16 @@ internal fun CropScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding()
             .background(Color.Black)
-            .padding(start = 10.dp, end = 10.dp, bottom = 10.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(
+                    start = SpoonTheme.dimen.paddingMS,
+                    end = SpoonTheme.dimen.paddingMS,
+                    bottom = SpoonTheme.dimen.paddingMS,
+                )
                 .weight(1f)
         ) {
             CropArea(
@@ -238,8 +242,7 @@ internal fun CropScreen(
                                 .fillMaxWidth()
                                 .padding(start = 12.dp, end = 12.dp, bottom = 16.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(scrimColor)
-                                .border(1.dp, borderColor, RoundedCornerShape(16.dp))
+                                .background(panelColor)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,
@@ -401,6 +404,7 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
     val iconColor = SpoonTheme.colors.iconFixedWhite
     val borderColor = SpoonTheme.colors.borderAlphaWhite200
     val scrimColor = SpoonTheme.colors.backgroundScrim200
+    val panelColor = Color(0xFF262626) // Gray850 — 테마 무관 고정 색상
     var activePanel by remember { mutableStateOf(initialPanel) }
 
     var selectedAspectRatio by remember { mutableStateOf(AspectRatio.ORIGINAL) }
@@ -512,8 +516,7 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
                                 .fillMaxWidth()
                                 .padding(start = 12.dp, end = 12.dp, bottom = 16.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(scrimColor)
-                                .border(1.dp, borderColor, RoundedCornerShape(16.dp))
+                                .background(panelColor)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,

@@ -1,25 +1,41 @@
 package com.spoonlabs.imageeditor
 
+import android.R
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.spooncast.designsystem.foundation.color.darkColors
+import net.spooncast.designsystem.foundation.theme.SpoonTheme
 
 class CropActivity : ComponentActivity() {
 
     private var sourceBitmap: Bitmap? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK),
+        )
         super.onCreate(savedInstanceState)
+
+        // Status bar 완전히 숨기기
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.statusBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
 
         val config = intent.getParcelableExtra<CropConfig>(EXTRA_CROP_CONFIG)
         if (config == null) {
@@ -35,39 +51,41 @@ class CropActivity : ComponentActivity() {
         sourceBitmap = bitmap
 
         setContent {
-            CropScreen(
-                bitmap = bitmap,
-                aspectRatioX = config.aspectRatioX,
-                aspectRatioY = config.aspectRatioY,
-                onConfirm = { cropRect, rotationDegrees, brightness, flipH, flipV ->
-                    lifecycleScope.launch {
-                        val result = withContext(Dispatchers.IO) {
-                            CropImageProcessor.cropAndSave(
-                                sourceBitmap = bitmap,
-                                cropRect = cropRect,
-                                rotationDegrees = rotationDegrees,
-                                brightness = brightness,
-                                flipHorizontal = flipH,
-                                flipVertical = flipV,
-                                outputUri = config.outputUri,
-                            )
+            SpoonTheme(colors = darkColors) {
+                CropScreen(
+                    bitmap = bitmap,
+                    aspectRatioX = config.aspectRatioX,
+                    aspectRatioY = config.aspectRatioY,
+                    onConfirm = { cropRect, rotationDegrees, brightness, flipH, flipV ->
+                        lifecycleScope.launch {
+                            val result = withContext(Dispatchers.IO) {
+                                CropImageProcessor.cropAndSave(
+                                    sourceBitmap = bitmap,
+                                    cropRect = cropRect,
+                                    rotationDegrees = rotationDegrees,
+                                    brightness = brightness,
+                                    flipHorizontal = flipH,
+                                    flipVertical = flipV,
+                                    outputUri = config.outputUri,
+                                )
+                            }
+                            result.onSuccess { uri ->
+                                setResult(
+                                    RESULT_OK,
+                                    Intent().putExtra(EXTRA_OUTPUT_URI, uri),
+                                )
+                                finish()
+                            }.onFailure { e ->
+                                finishWithError(e.localizedMessage ?: "Crop failed")
+                            }
                         }
-                        result.onSuccess { uri ->
-                            setResult(
-                                RESULT_OK,
-                                Intent().putExtra(EXTRA_OUTPUT_URI, uri),
-                            )
-                            finish()
-                        }.onFailure { e ->
-                            finishWithError(e.localizedMessage ?: "Crop failed")
-                        }
-                    }
-                },
-                onCancel = {
-                    setResult(RESULT_CANCELED)
-                    finish()
-                },
-            )
+                    },
+                    onCancel = {
+                        setResult(RESULT_CANCELED)
+                        finish()
+                    },
+                )
+            }
         }
     }
 

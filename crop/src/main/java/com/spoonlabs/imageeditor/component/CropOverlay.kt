@@ -5,11 +5,14 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 private val DIM_COLOR = Color.Black.copy(alpha = 0.5f)
 private val GRID_COLOR = Color.White.copy(alpha = 0.7f)
+private val BORDER_OUTLINE_COLOR = Color.Black.copy(alpha = 0.5f)
 private const val GRID_STROKE_WIDTH = 1.5f
 private const val BORDER_STROKE_WIDTH = 2.5f
+private const val BORDER_OUTLINE_WIDTH = BORDER_STROKE_WIDTH + 2f
 
 fun DrawScope.drawCropOverlay(cropRect: Rect) {
     // Dim areas outside crop rect
@@ -38,12 +41,18 @@ fun DrawScope.drawCropOverlay(cropRect: Rect) {
         size = Size(size.width - cropRect.right, cropRect.height),
     )
 
-    // Border
+    // Border — black outline behind white border for visibility on light backgrounds
+    drawRect(
+        color = BORDER_OUTLINE_COLOR,
+        topLeft = cropRect.topLeft,
+        size = cropRect.size,
+        style = Stroke(width = BORDER_OUTLINE_WIDTH),
+    )
     drawRect(
         color = Color.White,
         topLeft = cropRect.topLeft,
         size = cropRect.size,
-        style = androidx.compose.ui.graphics.drawscope.Stroke(width = BORDER_STROKE_WIDTH),
+        style = Stroke(width = BORDER_STROKE_WIDTH),
     )
 
     // Grid lines (rule of thirds)
