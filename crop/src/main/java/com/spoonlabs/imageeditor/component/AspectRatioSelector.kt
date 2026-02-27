@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.spoonlabs.imageeditor.R
+import net.spooncast.designsystem.foundation.theme.SpoonTheme
 
 /**
  * 비율 정의 — x:y는 항상 가로:세로 기준의 "기본 형태"
@@ -60,8 +61,6 @@ enum class AspectRatio(
     /** 1:1은 가로/세로 구분 없음 */
     val isSymmetric: Boolean get() = ratioX == ratioY
 }
-
-private val AccentColor = Color(0xFFF06B24)
 
 @Composable
 fun AspectRatioSelector(
@@ -127,12 +126,14 @@ private fun OrientationToggle(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val brandColor = SpoonTheme.colors.fillBrandDefault
+    val iconColor = SpoonTheme.colors.iconFixedWhite
     val iconRes = if (isPortrait) R.drawable.ic_orientation_portrait else R.drawable.ic_orientation_landscape
-    val tint = if (isSelected) AccentColor else Color.White.copy(alpha = 0.5f)
+    val tint = if (isSelected) brandColor else iconColor.copy(alpha = 0.5f)
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))
-            .background(if (isSelected) AccentColor.copy(alpha = 0.15f) else Color.Transparent)
+            .background(if (isSelected) brandColor.copy(alpha = 0.15f) else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
@@ -153,6 +154,9 @@ private fun RatioChip(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
+    val brandColor = SpoonTheme.colors.fillBrandDefault
+    val textColor = SpoonTheme.colors.textFixedWhite
+
     // 라벨
     val label = if (ratio == AspectRatio.ORIGINAL) {
         ratio.label
@@ -166,7 +170,7 @@ private fun RatioChip(
 
     Text(
         text = label,
-        color = if (isSelected) AccentColor else Color.White.copy(alpha = 0.7f),
+        color = if (isSelected) brandColor else textColor.copy(alpha = 0.7f),
         fontSize = 13.sp,
         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
         modifier = Modifier
@@ -175,4 +179,3 @@ private fun RatioChip(
             .padding(horizontal = 12.dp, vertical = 10.dp),
     )
 }
-

@@ -53,10 +53,7 @@ import com.spoonlabs.imageeditor.component.AspectRatio
 import com.spoonlabs.imageeditor.component.AspectRatioSelector
 import com.spoonlabs.imageeditor.component.CropArea
 import com.spoonlabs.imageeditor.component.RotationPanel
-
-private val AccentColor = Color(0xFFF06B24)
-private val PillBg = Color(0xFF2A2A2A)
-private val PillBorder = Color.White.copy(alpha = 0.15f)
+import net.spooncast.designsystem.foundation.theme.SpoonTheme
 
 private enum class ActivePanel {
     NONE, CROP, ROTATE, ADJUST,
@@ -71,6 +68,11 @@ internal fun CropScreen(
     onConfirm: (cropRect: RectF, rotationDegrees: Float, brightness: Float, flipHorizontal: Boolean, flipVertical: Boolean) -> Unit,
     onCancel: () -> Unit,
 ) {
+    val brandColor = SpoonTheme.colors.fillBrandDefault
+    val iconColor = SpoonTheme.colors.iconFixedWhite
+    val borderColor = SpoonTheme.colors.borderAlphaWhite100
+    val scrimColor = SpoonTheme.colors.backgroundScrim300
+
     var activePanel by remember { mutableStateOf(ActivePanel.NONE) }
 
     // 상세 패널 열린 상태에서 뒤로가기 → 기본 탭바로 복귀
@@ -83,15 +85,28 @@ internal fun CropScreen(
     var isLandscape by remember { mutableStateOf(false) }
 
     // Rotate state
-    var fineRotation by remember { mutableFloatStateOf(0f) }    // 눈금자 ±45°
-    var rotation90 by remember { mutableFloatStateOf(0f) }       // 90° 버튼 누적
+    var fineRotation by remember { mutableFloatStateOf(0f) }
+    var rotation90 by remember { mutableFloatStateOf(0f) }
     val totalRotation = rotation90 + fineRotation
 
     // Adjust state
     var brightness by remember { mutableFloatStateOf(0f) }
     var flipHorizontal by remember { mutableStateOf(false) }
 
-    // Crop rect provider
+    // ORIGINAL: bitmap 실제 비율 사용, 90° 회전 시 틀+이미지 함께 회전 (Samsung 스타일)
+    // 그 외 비율: 틀 고정, 이미지만 회전 (UCrop/iOS 스타일)
+    val is90or270 = ((rotation90 / 90f).toInt() % 2) != 0
+    val effectiveRatioX: Float? = if (selectedAspectRatio == AspectRatio.ORIGINAL) {
+        if (is90or270) bitmap.height.toFloat() else bitmap.width.toFloat()
+    } else {
+        selectedAspectRatio.x(isLandscape)
+    }
+    val effectiveRatioY: Float? = if (selectedAspectRatio == AspectRatio.ORIGINAL) {
+        if (is90or270) bitmap.width.toFloat() else bitmap.height.toFloat()
+    } else {
+        selectedAspectRatio.y(isLandscape)
+    }
+
     var getCropRect by remember { mutableStateOf<(() -> RectF)?>(null) }
     var bottomControlsHeight by remember { mutableFloatStateOf(0f) }
     var topBarHeight by remember { mutableFloatStateOf(0f) }
@@ -102,23 +117,23 @@ internal fun CropScreen(
             .systemBarsPadding()
             .background(Color.Black)
     ) {
-        // CropArea + 투명 툴바 + 하단 컨트롤 모두 Box 안에 오버레이
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            // CropArea fills entire area (이미지가 툴바 뒤까지 확장)
             CropArea(
                 bitmap = bitmap,
                 rotationDegrees = totalRotation,
-                aspectRatioX = selectedAspectRatio.x(isLandscape),
-                aspectRatioY = selectedAspectRatio.y(isLandscape),
+                aspectRatioX = effectiveRatioX,
+                aspectRatioY = effectiveRatioY,
                 brightness = brightness,
                 flipHorizontal = flipHorizontal,
                 topInset = topBarHeight,
                 bottomInset = if (activePanel != ActivePanel.NONE) bottomControlsHeight else 0f,
                 showCropOverlay = activePanel != ActivePanel.ADJUST,
+                fitImageWidth = if (is90or270) bitmap.height.toFloat() else 0f,
+                fitImageHeight = if (is90or270) bitmap.width.toFloat() else 0f,
                 modifier = Modifier.fillMaxSize(),
                 onCropStateChanged = { provider -> getCropRect = provider },
                 onImageTap = {
@@ -140,7 +155,7 @@ internal fun CropScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onCancel) {
-                    Icon(Icons.Filled.Close, "Close", tint = Color.White)
+                    Icon(Icons.Filled.Close, "Close", tint = iconColor)
                 }
                 IconButton(onClick = {
                     getCropRect?.invoke()?.let { rect ->
@@ -153,7 +168,7 @@ internal fun CropScreen(
                         )
                     }
                 }) {
-                    Icon(Icons.Filled.Check, "Confirm", tint = AccentColor)
+                    Icon(Icons.Filled.Check, "Confirm", tint = brandColor)
                 }
             }
 
@@ -184,8 +199,8 @@ internal fun CropScreen(
                             modifier = Modifier
                                 .padding(bottom = 16.dp)
                                 .clip(RoundedCornerShape(50))
-                                .background(PillBg)
-                                .border(1.dp, PillBorder, RoundedCornerShape(50))
+                                .background(scrimColor)
+                                .border(1.dp, borderColor, RoundedCornerShape(50))
                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -222,8 +237,8 @@ internal fun CropScreen(
                                 .fillMaxWidth()
                                 .padding(start = 12.dp, end = 12.dp, bottom = 16.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(PillBg)
-                                .border(1.dp, PillBorder, RoundedCornerShape(16.dp))
+                                .background(scrimColor)
+                                .border(1.dp, borderColor, RoundedCornerShape(16.dp))
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,
@@ -245,12 +260,15 @@ internal fun CropScreen(
                                     onFineRotationChange = { fineRotation = it },
                                     onRotate90 = {
                                         rotation90 = (rotation90 + 90f).mod(360f)
-                                        // 90° 회전 시 비율 가로↔세로 자동 전환
-                                        if (!selectedAspectRatio.isSymmetric && selectedAspectRatio != AspectRatio.ORIGINAL) {
+                                        // 90° 회전 시 비율 방향도 자동 swap
+                                        if (!selectedAspectRatio.isSymmetric) {
                                             isLandscape = !isLandscape
                                         }
                                     },
-                                    onReset = { fineRotation = 0f },
+                                    onReset = {
+                                        fineRotation = 0f
+                                        rotation90 = 0f
+                                    },
                                 )
                                 ActivePanel.ADJUST -> AdjustPanel(
                                     brightness = brightness,
@@ -281,19 +299,21 @@ private fun TabIcon(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
-    val tint = if (isSelected) AccentColor else Color.White.copy(alpha = 0.7f)
+    val brandColor = SpoonTheme.colors.fillBrandDefault
+    val iconColor = SpoonTheme.colors.iconFixedWhite
+    val tint = if (isSelected) brandColor else iconColor.copy(alpha = 0.7f)
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             painter = painterResource(id = iconRes),
             contentDescription = contentDescription,
             tint = tint,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(18.dp),
         )
     }
 }
@@ -327,13 +347,15 @@ private fun createPreviewBitmap(): Bitmap {
 )
 @Composable
 private fun PreviewCropScreenDefault() {
-    CropScreen(
-        bitmap = createPreviewBitmap(),
-        aspectRatioX = null,
-        aspectRatioY = null,
-        onConfirm = { _, _, _, _, _ -> },
-        onCancel = {},
-    )
+    SpoonTheme {
+        CropScreen(
+            bitmap = createPreviewBitmap(),
+            aspectRatioX = null,
+            aspectRatioY = null,
+            onConfirm = { _, _, _, _, _ -> },
+            onCancel = {},
+        )
+    }
 }
 
 @Preview(
@@ -346,8 +368,9 @@ private fun PreviewCropScreenDefault() {
 )
 @Composable
 private fun PreviewCropScreenCropPanel() {
-    // Crop 패널이 열린 상태를 보여주기 위한 프리뷰
-    CropScreenPreviewWithPanel(ActivePanel.CROP)
+    SpoonTheme {
+        CropScreenPreviewWithPanel(ActivePanel.CROP)
+    }
 }
 
 @Preview(
@@ -360,7 +383,9 @@ private fun PreviewCropScreenCropPanel() {
 )
 @Composable
 private fun PreviewCropScreenAdjustPanel() {
-    CropScreenPreviewWithPanel(ActivePanel.ADJUST)
+    SpoonTheme {
+        CropScreenPreviewWithPanel(ActivePanel.ADJUST)
+    }
 }
 
 /**
@@ -371,6 +396,10 @@ private fun PreviewCropScreenAdjustPanel() {
 @Composable
 private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
     val bitmap = createPreviewBitmap()
+    val brandColor = SpoonTheme.colors.fillBrandDefault
+    val iconColor = SpoonTheme.colors.iconFixedWhite
+    val borderColor = SpoonTheme.colors.borderAlphaWhite100
+    val scrimColor = SpoonTheme.colors.backgroundScrim300
     var activePanel by remember { mutableStateOf(initialPanel) }
 
     var selectedAspectRatio by remember { mutableStateOf(AspectRatio.ORIGINAL) }
@@ -380,6 +409,18 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
     val totalRotation = rotation90 + fineRotation
     var brightness by remember { mutableFloatStateOf(0f) }
     var flipHorizontal by remember { mutableStateOf(false) }
+    val is90or270Preview = ((rotation90 / 90f).toInt() % 2) != 0
+    val effectiveRatioX: Float? = if (selectedAspectRatio == AspectRatio.ORIGINAL) {
+        if (is90or270Preview) bitmap.height.toFloat() else bitmap.width.toFloat()
+    } else {
+        selectedAspectRatio.x(isLandscape)
+    }
+    val effectiveRatioY: Float? = if (selectedAspectRatio == AspectRatio.ORIGINAL) {
+        if (is90or270Preview) bitmap.width.toFloat() else bitmap.height.toFloat()
+    } else {
+        selectedAspectRatio.y(isLandscape)
+    }
+
     var bottomControlsHeight by remember { mutableFloatStateOf(0f) }
     var topBarHeight by remember { mutableFloatStateOf(0f) }
 
@@ -396,12 +437,14 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
             CropArea(
                 bitmap = bitmap,
                 rotationDegrees = totalRotation,
-                aspectRatioX = selectedAspectRatio.x(isLandscape),
-                aspectRatioY = selectedAspectRatio.y(isLandscape),
+                aspectRatioX = effectiveRatioX,
+                aspectRatioY = effectiveRatioY,
                 brightness = brightness,
                 flipHorizontal = flipHorizontal,
                 topInset = topBarHeight,
                 bottomInset = if (activePanel != ActivePanel.NONE) bottomControlsHeight else 0f,
+                fitImageWidth = if (is90or270Preview) bitmap.height.toFloat() else 0f,
+                fitImageHeight = if (is90or270Preview) bitmap.width.toFloat() else 0f,
                 modifier = Modifier.fillMaxSize(),
                 onImageTap = { activePanel = ActivePanel.NONE },
             )
@@ -418,10 +461,10 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = {}) {
-                    Icon(Icons.Filled.Close, "Close", tint = Color.White)
+                    Icon(Icons.Filled.Close, "Close", tint = iconColor)
                 }
                 IconButton(onClick = {}) {
-                    Icon(Icons.Filled.Check, "Confirm", tint = AccentColor)
+                    Icon(Icons.Filled.Check, "Confirm", tint = brandColor)
                 }
             }
 
@@ -450,8 +493,8 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
                             modifier = Modifier
                                 .padding(bottom = 16.dp)
                                 .clip(RoundedCornerShape(50))
-                                .background(PillBg)
-                                .border(1.dp, PillBorder, RoundedCornerShape(50))
+                                .background(scrimColor)
+                                .border(1.dp, borderColor, RoundedCornerShape(50))
                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -467,8 +510,8 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
                                 .fillMaxWidth()
                                 .padding(start = 12.dp, end = 12.dp, bottom = 16.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(PillBg)
-                                .border(1.dp, PillBorder, RoundedCornerShape(16.dp))
+                                .background(scrimColor)
+                                .border(1.dp, borderColor, RoundedCornerShape(16.dp))
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,
@@ -490,11 +533,15 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
                                     onFineRotationChange = { fineRotation = it },
                                     onRotate90 = {
                                         rotation90 = (rotation90 + 90f).mod(360f)
-                                        if (!selectedAspectRatio.isSymmetric && selectedAspectRatio != AspectRatio.ORIGINAL) {
+                                        // 90° 회전 시 비율 방향도 자동 swap
+                                        if (!selectedAspectRatio.isSymmetric) {
                                             isLandscape = !isLandscape
                                         }
                                     },
-                                    onReset = { fineRotation = 0f },
+                                    onReset = {
+                                        fineRotation = 0f
+                                        rotation90 = 0f
+                                    },
                                 )
                                 ActivePanel.ADJUST -> AdjustPanel(
                                     brightness = brightness,

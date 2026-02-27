@@ -11,7 +11,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        minSdk = 24
+        minSdk = 28
         consumerProguardFiles("consumer-rules.pro")
     }
 
@@ -57,6 +57,8 @@ dependencies {
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.runtime.ktx)
     implementation(libs.core.ktx)
+    implementation(libs.appcompat)
+    implementation(libs.spoon.designsystem)
 
     debugImplementation(libs.compose.ui.tooling)
     implementation(libs.compose.ui.tooling.preview)

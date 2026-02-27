@@ -74,6 +74,8 @@ fun CropArea(
     topInset: Float = 0f,
     bottomInset: Float = 0f,
     showCropOverlay: Boolean = true,
+    fitImageWidth: Float = 0f,
+    fitImageHeight: Float = 0f,
     modifier: Modifier = Modifier,
     onCropStateChanged: ((getCropRect: () -> RectF) -> Unit)? = null,
     onImageTap: (() -> Unit)? = null,
@@ -81,6 +83,9 @@ fun CropArea(
     val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
     val bmpW = bitmap.width.toFloat()
     val bmpH = bitmap.height.toFloat()
+    // fitW/fitH: 크롭 틀 크기 계산 기준 (ORIGINAL+회전 시 회전된 이미지 크기 사용)
+    val fitW = if (fitImageWidth > 0f) fitImageWidth else bmpW
+    val fitH = if (fitImageHeight > 0f) fitImageHeight else bmpH
 
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var transform by remember { mutableStateOf(TransformState()) }
@@ -95,26 +100,26 @@ fun CropArea(
         computeEffectiveSize(bmpW, bmpH, rotationDegrees)
     }
 
-    // cropRect (캔버스/인셋 기준)
-    val cropRect = remember(canvasSize, aspectRatioX, aspectRatioY, topInset, bottomInset) {
+    // cropRect (캔버스/인셋 기준) — fitW/fitH 기준으로 크기 계산
+    val cropRect = remember(canvasSize, aspectRatioX, aspectRatioY, fitW, fitH, topInset, bottomInset) {
         if (canvasSize == IntSize.Zero) return@remember Rect.Zero
         calculateCropRect(
             canvasSize.toSize(),
             aspectRatioX,
             aspectRatioY,
-            bmpW,
-            bmpH,
+            fitW,
+            fitH,
             topInset,
             bottomInset,
         )
     }
 
-    // baseScale: 0° 원본 이미지 기준으로 cropRect에 맞추는 스케일 (회전해도 크기 불변)
-    val baseScale = remember(cropRect, bmpW, bmpH) {
-        if (cropRect == Rect.Zero || bmpW <= 0f || bmpH <= 0f) 1f
+    // baseScale: fitW/fitH 기준으로 cropRect에 맞추는 스케일
+    val baseScale = remember(cropRect, fitW, fitH) {
+        if (cropRect == Rect.Zero || fitW <= 0f || fitH <= 0f) 1f
         else max(
-            cropRect.width / bmpW,
-            cropRect.height / bmpH,
+            cropRect.width / fitW,
+            cropRect.height / fitH,
         )
     }
 
@@ -227,9 +232,9 @@ fun CropArea(
 
                     val currentTransform = transform
 
-                    // baseScale: 0° 원본 기준 (회전 무관)
-                    val curBaseScale = if (bmpW <= 0f || bmpH <= 0f) 1f
-                    else max(cropRect.width / bmpW, cropRect.height / bmpH)
+                    // baseScale: fitW/fitH 기준
+                    val curBaseScale = if (fitW <= 0f || fitH <= 0f) 1f
+                    else max(cropRect.width / fitW, cropRect.height / fitH)
 
                     // effective 크기 (clamp 용도)
                     val (curEffW, curEffH) = computeEffectiveSize(bmpW, bmpH, rotationDegrees)
@@ -297,33 +302,32 @@ private fun calculateCropRect(
     bottomInset: Float = 0f,
 ): Rect {
     val paddingH = 16f
-    val paddingTop = 8f + topInset
-    val paddingBottom = 48f + bottomInset
+    val paddingTop = 16f + topInset
+    val paddingBottom = 16f + bottomInset
     val availableWidth = canvasSize.width - paddingH * 2
     val availableHeight = canvasSize.height - paddingTop - paddingBottom
-
-    val fitScale = min(
-        availableWidth / imageWidth,
-        availableHeight / imageHeight,
-    )
-    val fittedW = imageWidth * fitScale
-    val fittedH = imageHeight * fitScale
 
     val cropWidth: Float
     val cropHeight: Float
 
     if (aspectRatioX != null && aspectRatioY != null && aspectRatioY > 0f) {
+        // 비율 지정 → 사용 가능한 전체 공간에서 최대 크기로 배치
         val ratio = aspectRatioX / aspectRatioY
-        if (fittedW / fittedH > ratio) {
-            cropHeight = fittedH
+        if (availableWidth / availableHeight > ratio) {
+            cropHeight = availableHeight
             cropWidth = cropHeight * ratio
         } else {
-            cropWidth = fittedW
+            cropWidth = availableWidth
             cropHeight = cropWidth / ratio
         }
     } else {
-        cropWidth = fittedW
-        cropHeight = fittedH
+        // 자유 비율 → 이미지에 맞춤
+        val fitScale = min(
+            availableWidth / imageWidth,
+            availableHeight / imageHeight,
+        )
+        cropWidth = imageWidth * fitScale
+        cropHeight = imageHeight * fitScale
     }
 
     val left = (canvasSize.width - cropWidth) / 2f

@@ -14,16 +14,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.spoonlabs.imageeditor.R
+import net.spooncast.designsystem.foundation.theme.SpoonTheme
 import java.util.Locale
 import kotlin.math.roundToInt
-
-private val AccentColor = Color(0xFFF06B24)
 
 @Composable
 fun RotationPanel(
@@ -33,6 +31,10 @@ fun RotationPanel(
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val brandColor = SpoonTheme.colors.fillBrandDefault
+    val iconColor = SpoonTheme.colors.iconFixedWhite
+    val textColor = SpoonTheme.colors.textFixedWhite
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -42,7 +44,7 @@ fun RotationPanel(
         // 각도 표시
         Text(
             text = String.format(Locale.US, "%.1f°", fineRotation),
-            color = if (fineRotation != 0f) AccentColor else Color.White.copy(alpha = 0.7f),
+            color = if (fineRotation != 0f) brandColor else textColor.copy(alpha = 0.7f),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
         )
@@ -63,7 +65,7 @@ fun RotationPanel(
                 Icon(
                     imageVector = Icons.Filled.Close,
                     contentDescription = "Reset rotation",
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = iconColor.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -83,9 +85,9 @@ fun RotationPanel(
                 modifier = Modifier.size(36.dp),
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_rotate),
+                    painter = painterResource(id = R.drawable.ic_rotate_90),
                     contentDescription = "Rotate 90°",
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = iconColor.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp),
                 )
             }

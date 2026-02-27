@@ -1,13 +1,10 @@
 package com.spoonlabs.imageeditor.component
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -15,12 +12,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-
-private val AccentColor = Color(0xFFF06B24)
+import net.spooncast.designsystem.foundation.theme.SpoonTheme
 
 /**
  * 눈금자(tick mark) 스타일을 정의하는 데이터 클래스.
@@ -100,6 +95,8 @@ fun TickSlider(
     tickConfig: TickConfig,
     modifier: Modifier = Modifier,
 ) {
+    val brandColor = SpoonTheme.colors.fillBrandDefault
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -137,14 +134,13 @@ fun TickSlider(
             }
         }
 
-        // Slider (투명 트랙, accent 썸)
         Slider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
             modifier = Modifier.fillMaxWidth(),
             colors = SliderDefaults.colors(
-                thumbColor = AccentColor,
+                thumbColor = brandColor,
                 activeTrackColor = Color.Transparent,
                 inactiveTrackColor = Color.Transparent,
             ),
