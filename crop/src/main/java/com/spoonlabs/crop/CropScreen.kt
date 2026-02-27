@@ -2,34 +2,37 @@ package com.spoonlabs.crop
 
 import android.graphics.Bitmap
 import android.graphics.RectF
+import androidx.activity.compose.BackHandler
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -39,29 +42,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.spoonlabs.crop.component.AdjustPanel
 import com.spoonlabs.crop.component.AspectRatio
 import com.spoonlabs.crop.component.AspectRatioSelector
 import com.spoonlabs.crop.component.CropArea
 import com.spoonlabs.crop.component.RotationSlider
-import com.spoonlabs.crop.component.ScaleSlider
 
 private val AccentColor = Color(0xFFF06B24)
-private val SurfaceColor = Color(0xFF1A1A1A)
-private val DividerColor = Color.White.copy(alpha = 0.1f)
+private val PillBg = Color(0xFF2A2A2A)
+private val PillBorder = Color.White.copy(alpha = 0.15f)
 
-private enum class CropTab(val label: String) {
-    CROP("Crop"),
-    ROTATE("Rotate"),
-    SCALE("Scale"),
+private enum class ActivePanel {
+    NONE, CROP, ROTATE, ADJUST,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,12 +68,17 @@ internal fun CropScreen(
     bitmap: Bitmap,
     aspectRatioX: Float?,
     aspectRatioY: Float?,
-    onConfirm: (cropRect: RectF, rotationDegrees: Float) -> Unit,
+    onConfirm: (cropRect: RectF, rotationDegrees: Float, brightness: Float, flipHorizontal: Boolean, flipVertical: Boolean) -> Unit,
     onCancel: () -> Unit,
 ) {
-    var selectedTab by remember { mutableStateOf(CropTab.CROP) }
+    var activePanel by remember { mutableStateOf(ActivePanel.NONE) }
 
-    // Crop tab state
+    // 상세 패널 열린 상태에서 뒤로가기 → 기본 탭바로 복귀
+    BackHandler(enabled = activePanel != ActivePanel.NONE) {
+        activePanel = ActivePanel.NONE
+    }
+
+    // Crop state
     var selectedAspectRatio by remember {
         mutableStateOf(
             if (aspectRatioX != null && aspectRatioY != null) {
@@ -87,201 +90,411 @@ internal fun CropScreen(
         )
     }
 
-    // Rotate tab state
+    // Rotate state
     var fineRotation by remember { mutableFloatStateOf(0f) }
     var rotation90 by remember { mutableIntStateOf(0) }
     val totalRotation = rotation90 + fineRotation
 
-    // Scale tab state
-    var externalScale by remember { mutableFloatStateOf(1f) }
+    // Adjust state
+    var brightness by remember { mutableFloatStateOf(0f) }
+    var flipHorizontal by remember { mutableStateOf(false) }
 
     // Crop rect provider
     var getCropRect by remember { mutableStateOf<(() -> RectF)?>(null) }
+    var bottomControlsHeight by remember { mutableFloatStateOf(0f) }
+    var topBarHeight by remember { mutableFloatStateOf(0f) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+            .background(Color.Black)
+    ) {
+        // CropArea + 투명 툴바 + 하단 컨트롤 모두 Box 안에 오버레이
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            // CropArea fills entire area (이미지가 툴바 뒤까지 확장)
+            CropArea(
+                bitmap = bitmap,
+                rotationDegrees = totalRotation,
+                aspectRatioX = selectedAspectRatio.x,
+                aspectRatioY = selectedAspectRatio.y,
+                brightness = brightness,
+                flipHorizontal = flipHorizontal,
+                topInset = topBarHeight,
+                bottomInset = if (activePanel != ActivePanel.NONE) bottomControlsHeight else 0f,
+                modifier = Modifier.fillMaxSize(),
+                onCropStateChanged = { provider -> getCropRect = provider },
+                onImageTap = {
+                    if (activePanel != ActivePanel.NONE) {
+                        activePanel = ActivePanel.NONE
+                    }
+                },
+            )
+
+            // Transparent toolbar (overlay on top of image)
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .fillMaxWidth()
+                    .onSizeChanged { topBarHeight = it.height.toFloat() }
+                    .statusBarsPadding()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onCancel) {
+                    Icon(Icons.Filled.Close, "Close", tint = Color.White)
+                }
+                IconButton(onClick = {
+                    getCropRect?.invoke()?.let { rect ->
+                        onConfirm(rect, totalRotation, brightness, flipHorizontal, false)
+                    }
+                }) {
+                    Icon(Icons.Filled.Check, "Confirm", tint = AccentColor)
+                }
+            }
+
+            // Bottom floating controls (over the image)
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .onSizeChanged { bottomControlsHeight = it.height.toFloat() },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                AnimatedContent(
+                    targetState = activePanel,
+                    transitionSpec = {
+                        if (targetState == ActivePanel.NONE) {
+                            fadeIn() togetherWith (fadeOut() + slideOutVertically { it })
+                        } else if (initialState == ActivePanel.NONE) {
+                            (fadeIn() + slideInVertically { it }) togetherWith fadeOut()
+                        } else {
+                            fadeIn() togetherWith fadeOut()
+                        } using SizeTransform(clip = false)
+                    },
+                    label = "bottom_panel",
+                ) { panel ->
+                    if (panel == ActivePanel.NONE) {
+                        // Pill-shaped tab bar
+                        Row(
+                            modifier = Modifier
+                                .padding(bottom = 16.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(PillBg)
+                                .border(1.dp, PillBorder, RoundedCornerShape(50))
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            TabIcon(
+                                iconRes = R.drawable.ic_crop,
+                                contentDescription = "Crop",
+                                isSelected = false,
+                                onClick = { activePanel = ActivePanel.CROP },
+                            )
+                            TabIcon(
+                                iconRes = R.drawable.ic_rotate,
+                                contentDescription = "Rotate",
+                                isSelected = false,
+                                onClick = { activePanel = ActivePanel.ROTATE },
+                            )
+                            TabIcon(
+                                iconRes = R.drawable.ic_brightness,
+                                contentDescription = "Adjust",
+                                isSelected = false,
+                                onClick = { activePanel = ActivePanel.ADJUST },
+                            )
+                            TabIcon(
+                                iconRes = R.drawable.ic_flip,
+                                contentDescription = "Flip",
+                                isSelected = flipHorizontal,
+                                onClick = { flipHorizontal = !flipHorizontal },
+                            )
+                        }
+                    } else {
+                        // Detail panel in rounded box
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 12.dp, end = 12.dp, bottom = 16.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(PillBg)
+                                .border(1.dp, PillBorder, RoundedCornerShape(16.dp)),
+                        ) {
+                            when (panel) {
+                                ActivePanel.CROP -> AspectRatioSelector(
+                                    selected = selectedAspectRatio,
+                                    onSelect = { selectedAspectRatio = it },
+                                )
+                                ActivePanel.ROTATE -> RotationSlider(
+                                    fineRotation = fineRotation,
+                                    onFineRotationChange = { fineRotation = it },
+                                    onRotate90 = { rotation90 = (rotation90 + 90) % 360 },
+                                    onReset = { fineRotation = 0f },
+                                )
+                                ActivePanel.ADJUST -> AdjustPanel(
+                                    brightness = brightness,
+                                    onBrightnessChange = { brightness = it },
+                                    onReset = { brightness = 0f },
+                                )
+                                else -> {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Bottom spacer for navigation bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+        )
+    }
+}
+
+@Composable
+private fun TabIcon(
+    @DrawableRes iconRes: Int,
+    contentDescription: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    val tint = if (isSelected) AccentColor else Color.White.copy(alpha = 0.7f)
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(id = iconRes),
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(22.dp),
+        )
+    }
+}
+
+// ─── Previews ───────────────────────────────────────────────────────────────
+
+private fun createPreviewBitmap(): Bitmap {
+    val w = 800
+    val h = 600
+    val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bmp)
+    // 그라데이션 배경
+    val paint = android.graphics.Paint()
+    paint.shader = android.graphics.LinearGradient(
+        0f, 0f, w.toFloat(), h.toFloat(),
+        intArrayOf(0xFF1A237E.toInt(), 0xFF4A148C.toInt(), 0xFFE65100.toInt()),
+        null,
+        android.graphics.Shader.TileMode.CLAMP,
+    )
+    canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
+    return bmp
+}
+
+@Preview(
+    name = "Default (Pill Bar)",
+    showBackground = true,
+    backgroundColor = 0xFF000000,
+    widthDp = 360,
+    heightDp = 780,
+    showSystemUi = true,
+)
+@Composable
+private fun PreviewCropScreenDefault() {
+    CropScreen(
+        bitmap = createPreviewBitmap(),
+        aspectRatioX = null,
+        aspectRatioY = null,
+        onConfirm = { _, _, _, _, _ -> },
+        onCancel = {},
+    )
+}
+
+@Preview(
+    name = "Crop Panel",
+    showBackground = true,
+    backgroundColor = 0xFF000000,
+    widthDp = 360,
+    heightDp = 780,
+    showSystemUi = true,
+)
+@Composable
+private fun PreviewCropScreenCropPanel() {
+    // Crop 패널이 열린 상태를 보여주기 위한 프리뷰
+    CropScreenPreviewWithPanel(ActivePanel.CROP)
+}
+
+@Preview(
+    name = "Rotate Panel",
+    showBackground = true,
+    backgroundColor = 0xFF000000,
+    widthDp = 360,
+    heightDp = 780,
+    showSystemUi = true,
+)
+@Composable
+private fun PreviewCropScreenRotatePanel() {
+    CropScreenPreviewWithPanel(ActivePanel.ROTATE)
+}
+
+@Preview(
+    name = "Adjust Panel",
+    showBackground = true,
+    backgroundColor = 0xFF000000,
+    widthDp = 360,
+    heightDp = 780,
+    showSystemUi = true,
+)
+@Composable
+private fun PreviewCropScreenAdjustPanel() {
+    CropScreenPreviewWithPanel(ActivePanel.ADJUST)
+}
+
+/**
+ * 특정 패널이 열린 상태의 CropScreen 프리뷰.
+ * 직접 내부 상태를 제어하여 각 패널 UI를 확인할 수 있음.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
+    val bitmap = createPreviewBitmap()
+    var activePanel by remember { mutableStateOf(initialPanel) }
+
+    var selectedAspectRatio by remember { mutableStateOf(AspectRatio.ORIGINAL) }
+    var fineRotation by remember { mutableFloatStateOf(0f) }
+    var rotation90 by remember { mutableIntStateOf(0) }
+    val totalRotation = rotation90 + fineRotation
+    var brightness by remember { mutableFloatStateOf(0f) }
+    var flipHorizontal by remember { mutableStateOf(false) }
+    var bottomControlsHeight by remember { mutableFloatStateOf(0f) }
+    var topBarHeight by remember { mutableFloatStateOf(0f) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .statusBarsPadding()
     ) {
-        // Top App Bar
-        CenterAlignedTopAppBar(
-            title = {
-                Text(
-                    text = "사진 편집",
-                    color = Color.White,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onCancel) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = "Close",
-                        tint = Color.White,
-                    )
-                }
-            },
-            actions = {
-                IconButton(onClick = {
-                    val rect = getCropRect?.invoke() ?: return@IconButton
-                    onConfirm(rect, totalRotation)
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = "Confirm",
-                        tint = AccentColor,
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                containerColor = Color.Black,
-            ),
-        )
-
-        // Crop Area (takes remaining space)
-        CropArea(
-            bitmap = bitmap,
-            rotationDegrees = totalRotation,
-            aspectRatioX = selectedAspectRatio.x,
-            aspectRatioY = selectedAspectRatio.y,
-            externalScale = externalScale,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
-            onCropStateChanged = { provider -> getCropRect = provider },
-        )
-
-        // Control Panel (changes based on selected tab)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(SurfaceColor),
+                .weight(1f)
         ) {
-            AnimatedContent(
-                targetState = selectedTab,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "control_panel",
-            ) { tab ->
-                when (tab) {
-                    CropTab.CROP -> AspectRatioSelector(
-                        selected = selectedAspectRatio,
-                        onSelect = { selectedAspectRatio = it },
-                    )
-                    CropTab.ROTATE -> RotationSlider(
-                        fineRotation = fineRotation,
-                        onFineRotationChange = { fineRotation = it },
-                        onRotate90 = { rotation90 = (rotation90 + 90) % 360 },
-                        onReset = { fineRotation = 0f },
-                    )
-                    CropTab.SCALE -> ScaleSlider(
-                        scale = externalScale,
-                        onScaleChange = { externalScale = it },
-                        minScale = 1f,
-                        maxScale = 5f,
-                    )
-                }
-            }
+            CropArea(
+                bitmap = bitmap,
+                rotationDegrees = totalRotation,
+                aspectRatioX = selectedAspectRatio.x,
+                aspectRatioY = selectedAspectRatio.y,
+                brightness = brightness,
+                flipHorizontal = flipHorizontal,
+                topInset = topBarHeight,
+                bottomInset = if (activePanel != ActivePanel.NONE) bottomControlsHeight else 0f,
+                modifier = Modifier.fillMaxSize(),
+                onImageTap = { activePanel = ActivePanel.NONE },
+            )
 
-            HorizontalDivider(color = DividerColor, thickness = 0.5.dp)
-
-            // Bottom Tab Bar
+            // Transparent toolbar
             Row(
                 modifier = Modifier
+                    .align(Alignment.TopStart)
                     .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                    .onSizeChanged { topBarHeight = it.height.toFloat() }
+                    .statusBarsPadding()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                CropTab.entries.forEach { tab ->
-                    TabItem(
-                        tab = tab,
-                        isSelected = tab == selectedTab,
-                        onClick = { selectedTab = tab },
-                    )
+                IconButton(onClick = {}) {
+                    Icon(Icons.Filled.Close, "Close", tint = Color.White)
+                }
+                IconButton(onClick = {}) {
+                    Icon(Icons.Filled.Check, "Confirm", tint = AccentColor)
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .onSizeChanged { bottomControlsHeight = it.height.toFloat() },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                AnimatedContent(
+                    targetState = activePanel,
+                    transitionSpec = {
+                        if (targetState == ActivePanel.NONE) {
+                            fadeIn() togetherWith (fadeOut() + slideOutVertically { it })
+                        } else if (initialState == ActivePanel.NONE) {
+                            (fadeIn() + slideInVertically { it }) togetherWith fadeOut()
+                        } else {
+                            fadeIn() togetherWith fadeOut()
+                        } using SizeTransform(clip = false)
+                    },
+                    label = "bottom_panel",
+                ) { panel ->
+                    if (panel == ActivePanel.NONE) {
+                        Row(
+                            modifier = Modifier
+                                .padding(bottom = 16.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(PillBg)
+                                .border(1.dp, PillBorder, RoundedCornerShape(50))
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            TabIcon(R.drawable.ic_crop, "Crop", false, { activePanel = ActivePanel.CROP })
+                            TabIcon(R.drawable.ic_rotate, "Rotate", false, { activePanel = ActivePanel.ROTATE })
+                            TabIcon(R.drawable.ic_brightness, "Adjust", false, { activePanel = ActivePanel.ADJUST })
+                            TabIcon(R.drawable.ic_flip, "Flip", flipHorizontal, { flipHorizontal = !flipHorizontal })
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 12.dp, end = 12.dp, bottom = 16.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(PillBg)
+                                .border(1.dp, PillBorder, RoundedCornerShape(16.dp)),
+                        ) {
+                            when (panel) {
+                                ActivePanel.CROP -> AspectRatioSelector(
+                                    selected = selectedAspectRatio,
+                                    onSelect = { selectedAspectRatio = it },
+                                )
+                                ActivePanel.ROTATE -> RotationSlider(
+                                    fineRotation = fineRotation,
+                                    onFineRotationChange = { fineRotation = it },
+                                    onRotate90 = { rotation90 = (rotation90 + 90) % 360 },
+                                    onReset = { fineRotation = 0f },
+                                )
+                                ActivePanel.ADJUST -> AdjustPanel(
+                                    brightness = brightness,
+                                    onBrightnessChange = { brightness = it },
+                                    onReset = { brightness = 0f },
+                                )
+                                else -> {}
+                            }
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
-@Composable
-private fun TabItem(
-    tab: CropTab,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-) {
-    val color = if (isSelected) AccentColor else Color.White.copy(alpha = 0.5f)
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 4.dp),
-    ) {
-        Canvas(modifier = Modifier.size(22.dp)) {
-            when (tab) {
-                CropTab.CROP -> drawCropIcon(color)
-                CropTab.ROTATE -> drawRotateIcon(color)
-                CropTab.SCALE -> drawScaleIcon(color)
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = tab.label,
-            color = color,
-            fontSize = 11.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
         )
     }
-}
-
-// Custom drawn icons (no extended icon dependency needed)
-private fun DrawScope.drawCropIcon(color: Color) {
-    val s = 1.5f // stroke
-    val p = 3f   // padding
-    // L-shaped crop lines
-    // Vertical left line
-    drawLine(color, Offset(p + 4f, 0f), Offset(p + 4f, size.height - p), strokeWidth = s)
-    // Horizontal bottom line
-    drawLine(color, Offset(0f, size.height - p - 4f), Offset(size.width, size.height - p - 4f), strokeWidth = s)
-    // Vertical right line
-    drawLine(color, Offset(size.width - p - 4f, p), Offset(size.width - p - 4f, size.height), strokeWidth = s)
-    // Horizontal top line
-    drawLine(color, Offset(p, p + 4f), Offset(size.width - p, p + 4f), strokeWidth = s)
-}
-
-private fun DrawScope.drawRotateIcon(color: Color) {
-    val cx = size.width / 2
-    val cy = size.height / 2
-    val r = size.width / 2 - 2f
-    // Draw arc (3/4 circle)
-    drawArc(
-        color = color,
-        startAngle = -90f,
-        sweepAngle = 270f,
-        useCenter = false,
-        topLeft = Offset(cx - r, cy - r),
-        size = Size(r * 2, r * 2),
-        style = Stroke(width = 1.5f),
-    )
-    // Arrow head at top
-    drawLine(color, Offset(cx, cy - r - 3f), Offset(cx + 4f, cy - r + 1f), strokeWidth = 1.5f)
-    drawLine(color, Offset(cx, cy - r - 3f), Offset(cx - 4f, cy - r + 1f), strokeWidth = 1.5f)
-}
-
-private fun DrawScope.drawScaleIcon(color: Color) {
-    val s = 1.5f
-    // Magnifying glass
-    val cx = size.width / 2 - 2f
-    val cy = size.height / 2 - 2f
-    val r = size.width / 3
-    drawCircle(color, r, Offset(cx, cy), style = Stroke(width = s))
-    // Handle
-    val hx = cx + r * 0.7f
-    val hy = cy + r * 0.7f
-    drawLine(color, Offset(hx, hy), Offset(size.width - 1f, size.height - 1f), strokeWidth = s)
-    // Plus sign
-    drawLine(color, Offset(cx - r / 2, cy), Offset(cx + r / 2, cy), strokeWidth = s)
-    drawLine(color, Offset(cx, cy - r / 2), Offset(cx, cy + r / 2), strokeWidth = s)
 }

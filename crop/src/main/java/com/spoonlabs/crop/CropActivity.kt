@@ -39,13 +39,16 @@ class CropActivity : ComponentActivity() {
                 bitmap = bitmap,
                 aspectRatioX = config.aspectRatioX,
                 aspectRatioY = config.aspectRatioY,
-                onConfirm = { cropRect, rotationDegrees ->
+                onConfirm = { cropRect, rotationDegrees, brightness, flipH, flipV ->
                     lifecycleScope.launch {
                         val result = withContext(Dispatchers.IO) {
                             CropImageProcessor.cropAndSave(
                                 sourceBitmap = bitmap,
                                 cropRect = cropRect,
                                 rotationDegrees = rotationDegrees,
+                                brightness = brightness,
+                                flipHorizontal = flipH,
+                                flipVertical = flipV,
                                 outputUri = config.outputUri,
                             )
                         }
