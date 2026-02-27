@@ -70,8 +70,8 @@ internal fun CropScreen(
 ) {
     val brandColor = SpoonTheme.colors.fillBrandDefault
     val iconColor = SpoonTheme.colors.iconFixedWhite
-    val borderColor = SpoonTheme.colors.borderAlphaWhite100
-    val scrimColor = SpoonTheme.colors.backgroundScrim300
+    val borderColor = SpoonTheme.colors.borderAlphaWhite200
+    val scrimColor = SpoonTheme.colors.backgroundScrim200
 
     var activePanel by remember { mutableStateOf(ActivePanel.NONE) }
 
@@ -116,6 +116,7 @@ internal fun CropScreen(
             .fillMaxSize()
             .systemBarsPadding()
             .background(Color.Black)
+            .padding(start = 10.dp, end = 10.dp, bottom = 10.dp)
     ) {
         Box(
             modifier = Modifier
@@ -301,7 +302,7 @@ private fun TabIcon(
 ) {
     val brandColor = SpoonTheme.colors.fillBrandDefault
     val iconColor = SpoonTheme.colors.iconFixedWhite
-    val tint = if (isSelected) brandColor else iconColor.copy(alpha = 0.7f)
+    val tint = if (isSelected) brandColor else iconColor
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
@@ -398,8 +399,8 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
     val bitmap = createPreviewBitmap()
     val brandColor = SpoonTheme.colors.fillBrandDefault
     val iconColor = SpoonTheme.colors.iconFixedWhite
-    val borderColor = SpoonTheme.colors.borderAlphaWhite100
-    val scrimColor = SpoonTheme.colors.backgroundScrim300
+    val borderColor = SpoonTheme.colors.borderAlphaWhite200
+    val scrimColor = SpoonTheme.colors.backgroundScrim200
     var activePanel by remember { mutableStateOf(initialPanel) }
 
     var selectedAspectRatio by remember { mutableStateOf(AspectRatio.ORIGINAL) }
@@ -428,6 +429,7 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .padding(start = 10.dp, end = 10.dp, bottom = 10.dp)
     ) {
         Box(
             modifier = Modifier

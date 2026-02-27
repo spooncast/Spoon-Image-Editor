@@ -7,9 +7,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 
 private val DIM_COLOR = Color.Black.copy(alpha = 0.5f)
-private val GRID_COLOR = Color.White.copy(alpha = 0.5f)
-private const val GRID_STROKE_WIDTH = 1f
-private const val BORDER_STROKE_WIDTH = 2f
+private val GRID_COLOR = Color.White.copy(alpha = 0.7f)
+private const val GRID_STROKE_WIDTH = 1.5f
+private const val BORDER_STROKE_WIDTH = 2.5f
 
 fun DrawScope.drawCropOverlay(cropRect: Rect) {
     // Dim areas outside crop rect
