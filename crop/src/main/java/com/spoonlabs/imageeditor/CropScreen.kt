@@ -14,6 +14,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,7 +37,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -52,7 +52,7 @@ import com.spoonlabs.imageeditor.component.AdjustPanel
 import com.spoonlabs.imageeditor.component.AspectRatio
 import com.spoonlabs.imageeditor.component.AspectRatioSelector
 import com.spoonlabs.imageeditor.component.CropArea
-import com.spoonlabs.imageeditor.component.RotationSlider
+import com.spoonlabs.imageeditor.component.RotationPanel
 
 private val AccentColor = Color(0xFFF06B24)
 private val PillBg = Color(0xFF2A2A2A)
@@ -79,20 +79,12 @@ internal fun CropScreen(
     }
 
     // Crop state
-    var selectedAspectRatio by remember {
-        mutableStateOf(
-            if (aspectRatioX != null && aspectRatioY != null) {
-                AspectRatio.entries.find { it.x == aspectRatioX && it.y == aspectRatioY }
-                    ?: AspectRatio.ORIGINAL
-            } else {
-                AspectRatio.ORIGINAL
-            }
-        )
-    }
+    var selectedAspectRatio by remember { mutableStateOf(AspectRatio.ORIGINAL) }
+    var isLandscape by remember { mutableStateOf(false) }
 
     // Rotate state
-    var fineRotation by remember { mutableFloatStateOf(0f) }
-    var rotation90 by remember { mutableIntStateOf(0) }
+    var fineRotation by remember { mutableFloatStateOf(0f) }    // 눈금자 ±45°
+    var rotation90 by remember { mutableFloatStateOf(0f) }       // 90° 버튼 누적
     val totalRotation = rotation90 + fineRotation
 
     // Adjust state
@@ -120,12 +112,13 @@ internal fun CropScreen(
             CropArea(
                 bitmap = bitmap,
                 rotationDegrees = totalRotation,
-                aspectRatioX = selectedAspectRatio.x,
-                aspectRatioY = selectedAspectRatio.y,
+                aspectRatioX = selectedAspectRatio.x(isLandscape),
+                aspectRatioY = selectedAspectRatio.y(isLandscape),
                 brightness = brightness,
                 flipHorizontal = flipHorizontal,
                 topInset = topBarHeight,
                 bottomInset = if (activePanel != ActivePanel.NONE) bottomControlsHeight else 0f,
+                showCropOverlay = activePanel != ActivePanel.ADJUST,
                 modifier = Modifier.fillMaxSize(),
                 onCropStateChanged = { provider -> getCropRect = provider },
                 onImageTap = {
@@ -151,7 +144,13 @@ internal fun CropScreen(
                 }
                 IconButton(onClick = {
                     getCropRect?.invoke()?.let { rect ->
-                        onConfirm(rect, totalRotation, brightness, flipHorizontal, false)
+                        onConfirm(
+                            rect,
+                            totalRotation,
+                            brightness,
+                            flipHorizontal,
+                            false,
+                        )
                     }
                 }) {
                     Icon(Icons.Filled.Check, "Confirm", tint = AccentColor)
@@ -217,24 +216,40 @@ internal fun CropScreen(
                             )
                         }
                     } else {
-                        // Detail panel in rounded box
+                        // Detail panel in rounded box — clickable로 터치 이벤트 소비 (뒤 이미지 탭 방지)
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(start = 12.dp, end = 12.dp, bottom = 16.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(PillBg)
-                                .border(1.dp, PillBorder, RoundedCornerShape(16.dp)),
+                                .border(1.dp, PillBorder, RoundedCornerShape(16.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {},
+                                ),
                         ) {
                             when (panel) {
                                 ActivePanel.CROP -> AspectRatioSelector(
                                     selected = selectedAspectRatio,
-                                    onSelect = { selectedAspectRatio = it },
+                                    isLandscape = isLandscape,
+                                    onSelect = {
+                                        selectedAspectRatio = it
+                                        activePanel = ActivePanel.NONE
+                                    },
+                                    onToggleOrientation = { isLandscape = !isLandscape },
                                 )
-                                ActivePanel.ROTATE -> RotationSlider(
+                                ActivePanel.ROTATE -> RotationPanel(
                                     fineRotation = fineRotation,
                                     onFineRotationChange = { fineRotation = it },
-                                    onRotate90 = { rotation90 = (rotation90 + 90) % 360 },
+                                    onRotate90 = {
+                                        rotation90 = (rotation90 + 90f).mod(360f)
+                                        // 90° 회전 시 비율 가로↔세로 자동 전환
+                                        if (!selectedAspectRatio.isSymmetric && selectedAspectRatio != AspectRatio.ORIGINAL) {
+                                            isLandscape = !isLandscape
+                                        }
+                                    },
                                     onReset = { fineRotation = 0f },
                                 )
                                 ActivePanel.ADJUST -> AdjustPanel(
@@ -336,19 +351,6 @@ private fun PreviewCropScreenCropPanel() {
 }
 
 @Preview(
-    name = "Rotate Panel",
-    showBackground = true,
-    backgroundColor = 0xFF000000,
-    widthDp = 360,
-    heightDp = 780,
-    showSystemUi = true,
-)
-@Composable
-private fun PreviewCropScreenRotatePanel() {
-    CropScreenPreviewWithPanel(ActivePanel.ROTATE)
-}
-
-@Preview(
     name = "Adjust Panel",
     showBackground = true,
     backgroundColor = 0xFF000000,
@@ -372,8 +374,9 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
     var activePanel by remember { mutableStateOf(initialPanel) }
 
     var selectedAspectRatio by remember { mutableStateOf(AspectRatio.ORIGINAL) }
+    var isLandscape by remember { mutableStateOf(false) }
     var fineRotation by remember { mutableFloatStateOf(0f) }
-    var rotation90 by remember { mutableIntStateOf(0) }
+    var rotation90 by remember { mutableFloatStateOf(0f) }
     val totalRotation = rotation90 + fineRotation
     var brightness by remember { mutableFloatStateOf(0f) }
     var flipHorizontal by remember { mutableStateOf(false) }
@@ -393,8 +396,8 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
             CropArea(
                 bitmap = bitmap,
                 rotationDegrees = totalRotation,
-                aspectRatioX = selectedAspectRatio.x,
-                aspectRatioY = selectedAspectRatio.y,
+                aspectRatioX = selectedAspectRatio.x(isLandscape),
+                aspectRatioY = selectedAspectRatio.y(isLandscape),
                 brightness = brightness,
                 flipHorizontal = flipHorizontal,
                 topInset = topBarHeight,
@@ -465,17 +468,32 @@ private fun CropScreenPreviewWithPanel(initialPanel: ActivePanel) {
                                 .padding(start = 12.dp, end = 12.dp, bottom = 16.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(PillBg)
-                                .border(1.dp, PillBorder, RoundedCornerShape(16.dp)),
+                                .border(1.dp, PillBorder, RoundedCornerShape(16.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {},
+                                ),
                         ) {
                             when (panel) {
                                 ActivePanel.CROP -> AspectRatioSelector(
                                     selected = selectedAspectRatio,
-                                    onSelect = { selectedAspectRatio = it },
+                                    isLandscape = isLandscape,
+                                    onSelect = {
+                                        selectedAspectRatio = it
+                                        activePanel = ActivePanel.NONE
+                                    },
+                                    onToggleOrientation = { isLandscape = !isLandscape },
                                 )
-                                ActivePanel.ROTATE -> RotationSlider(
+                                ActivePanel.ROTATE -> RotationPanel(
                                     fineRotation = fineRotation,
                                     onFineRotationChange = { fineRotation = it },
-                                    onRotate90 = { rotation90 = (rotation90 + 90) % 360 },
+                                    onRotate90 = {
+                                        rotation90 = (rotation90 + 90f).mod(360f)
+                                        if (!selectedAspectRatio.isSymmetric && selectedAspectRatio != AspectRatio.ORIGINAL) {
+                                            isLandscape = !isLandscape
+                                        }
+                                    },
                                     onReset = { fineRotation = 0f },
                                 )
                                 ActivePanel.ADJUST -> AdjustPanel(

@@ -15,18 +15,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.spoonlabs.imageeditor.R
 import java.util.Locale
 import kotlin.math.roundToInt
 
 private val AccentColor = Color(0xFFF06B24)
 
 @Composable
-fun AdjustPanel(
-    brightness: Float,
-    onBrightnessChange: (Float) -> Unit,
+fun RotationPanel(
+    fineRotation: Float,
+    onFineRotationChange: (Float) -> Unit,
+    onRotate90: () -> Unit,
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -36,16 +39,15 @@ fun AdjustPanel(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Brightness value text
-        val percentage = (brightness * 100).roundToInt()
+        // 각도 표시
         Text(
-            text = String.format(Locale.US, "%+d%%", percentage),
-            color = if (brightness != 0f) AccentColor else Color.White.copy(alpha = 0.7f),
+            text = String.format(Locale.US, "%.1f°", fineRotation),
+            color = if (fineRotation != 0f) AccentColor else Color.White.copy(alpha = 0.7f),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
         )
 
-        // Brightness slider with tick marks
+        // 슬라이더 + 리셋 버튼 + 90° 버튼
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -53,14 +55,14 @@ fun AdjustPanel(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            // Reset button
+            // 리셋 버튼 (X)
             IconButton(
                 onClick = onReset,
                 modifier = Modifier.size(36.dp),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Close,
-                    contentDescription = "Reset",
+                    contentDescription = "Reset rotation",
                     tint = Color.White.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp),
                 )
@@ -68,12 +70,25 @@ fun AdjustPanel(
 
             // 눈금자 + 슬라이더 (공통 컴포넌트)
             TickSlider(
-                value = brightness,
-                onValueChange = { onBrightnessChange((it * 20f).roundToInt() / 20f) },
-                valueRange = -0.5f..0.5f,
-                tickConfig = TickConfig.Brightness,
+                value = fineRotation,
+                onValueChange = { onFineRotationChange((it * 2f).roundToInt() / 2f) },
+                valueRange = -45f..45f,
+                tickConfig = TickConfig.Rotation,
                 modifier = Modifier.weight(1f),
             )
+
+            // 90° 회전 버튼
+            IconButton(
+                onClick = onRotate90,
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_rotate),
+                    contentDescription = "Rotate 90°",
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
     }
 }
