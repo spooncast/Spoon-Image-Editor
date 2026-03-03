@@ -54,10 +54,9 @@ import com.spoonlabs.imageeditor.component.AdjustPanel
 import com.spoonlabs.imageeditor.component.AspectRatio
 import com.spoonlabs.imageeditor.component.AspectRatioSelector
 import com.spoonlabs.imageeditor.component.CropArea
-import com.spoonlabs.imageeditor.component.RotationPanel
 
 private enum class ActivePanel {
-    NONE, CROP, ROTATE, ADJUST,
+    NONE, CROP, ADJUST,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,12 +81,10 @@ internal fun ImageEditScreen(
     var selectedAspectRatio by remember { mutableStateOf(AspectRatio.ORIGINAL) }
     var isLandscape by remember { mutableStateOf(false) }
 
-    var fineRotation by remember { mutableFloatStateOf(0f) }
     var rotation90 by remember { mutableFloatStateOf(0f) }
-    val totalRotation = rotation90 + fineRotation
-
     var brightness by remember { mutableFloatStateOf(0f) }
     var flipHorizontal by remember { mutableStateOf(false) }
+    var flipVertical by remember { mutableStateOf(false) }
 
     val is90or270 = ((rotation90 / 90f).toInt() % 2) != 0
     val effectiveRatioX: Float? = if (selectedAspectRatio == AspectRatio.ORIGINAL) {
@@ -122,11 +119,12 @@ internal fun ImageEditScreen(
         ) {
             CropArea(
                 bitmap = bitmap,
-                rotationDegrees = totalRotation,
+                rotationDegrees = rotation90,
                 aspectRatioX = effectiveRatioX,
                 aspectRatioY = effectiveRatioY,
                 brightness = brightness,
                 flipHorizontal = flipHorizontal,
+                flipVertical = flipVertical,
                 topInset = topBarHeight,
                 bottomInset = if (activePanel != ActivePanel.NONE) bottomControlsHeight else 0f,
                 showCropOverlay = activePanel != ActivePanel.ADJUST,
@@ -158,10 +156,10 @@ internal fun ImageEditScreen(
                     getCropRect?.invoke()?.let { rect ->
                         onConfirm(
                             rect,
-                            totalRotation,
+                            rotation90,
                             brightness,
                             flipHorizontal,
-                            false,
+                            flipVertical,
                         )
                     }
                 }) {
@@ -215,7 +213,12 @@ internal fun ImageEditScreen(
                                 iconRes = R.drawable.ic_rotate,
                                 contentDescription = "Rotate",
                                 isSelected = false,
-                                onClick = { activePanel = ActivePanel.ROTATE },
+                                onClick = {
+                                    rotation90 = (rotation90 + 90f).mod(360f)
+                                    if (!selectedAspectRatio.isSymmetric) {
+                                        isLandscape = !isLandscape
+                                    }
+                                },
                             )
                             TabIcon(
                                 iconRes = R.drawable.ic_brightness,
@@ -226,8 +229,14 @@ internal fun ImageEditScreen(
                             TabIcon(
                                 iconRes = R.drawable.ic_flip,
                                 contentDescription = "Flip",
-                                isSelected = flipHorizontal,
-                                onClick = { flipHorizontal = !flipHorizontal },
+                                isSelected = if (is90or270) flipVertical else flipHorizontal,
+                                onClick = {
+                                    if (is90or270) {
+                                        flipVertical = !flipVertical
+                                    } else {
+                                        flipHorizontal = !flipHorizontal
+                                    }
+                                },
                             )
                         }
                     } else {
@@ -252,20 +261,6 @@ internal fun ImageEditScreen(
                                         activePanel = ActivePanel.NONE
                                     },
                                     onToggleOrientation = { isLandscape = !isLandscape },
-                                )
-                                ActivePanel.ROTATE -> RotationPanel(
-                                    fineRotation = fineRotation,
-                                    onFineRotationChange = { fineRotation = it },
-                                    onRotate90 = {
-                                        rotation90 = (rotation90 + 90f).mod(360f)
-                                        if (!selectedAspectRatio.isSymmetric) {
-                                            isLandscape = !isLandscape
-                                        }
-                                    },
-                                    onReset = {
-                                        fineRotation = 0f
-                                        rotation90 = 0f
-                                    },
                                 )
                                 ActivePanel.ADJUST -> AdjustPanel(
                                     brightness = brightness,

@@ -162,8 +162,8 @@ fun CropArea(
     val brightnessFilter = remember(brightness) {
         if (brightness == 0f) null
         else {
-            val scale = 1f + brightness * 0.5f
-            val offset = if (brightness > 0f) brightness * 30f else 0f
+            val scale = 1f + brightness * 0.2f
+            val offset = brightness * 80f
             val matrix = ColorMatrix().apply {
                 set(0, 0, scale)
                 set(1, 1, scale)
@@ -344,50 +344,30 @@ private fun computeSourceCropRect(
     val effectiveWidth = bmpW * cosA + bmpH * sinA
     val effectiveHeight = bmpW * sinA + bmpH * cosA
 
-    val effLeft = (cropRect.left - offsetX) / scale
-    val effTop = (cropRect.top - offsetY) / scale
-    val effRight = (cropRect.right - offsetX) / scale
-    val effBottom = (cropRect.bottom - offsetY) / scale
+    // Screen crop rect → effective (rotated+flipped) space
+    var effLeft = (cropRect.left - offsetX) / scale
+    var effTop = (cropRect.top - offsetY) / scale
+    var effRight = (cropRect.right - offsetX) / scale
+    var effBottom = (cropRect.bottom - offsetY) / scale
 
-    val effCx = effectiveWidth / 2f
-    val effCy = effectiveHeight / 2f
-
-    val cosR = cos(-radians).toFloat()
-    val sinR = sin(-radians).toFloat()
-    val bmpCx = bmpW / 2f
-    val bmpCy = bmpH / 2f
-
-    val corners = arrayOf(
-        Offset(effLeft, effTop),
-        Offset(effRight, effTop),
-        Offset(effRight, effBottom),
-        Offset(effLeft, effBottom),
-    )
-
-    var srcLeft = Float.MAX_VALUE
-    var srcTop = Float.MAX_VALUE
-    var srcRight = Float.MIN_VALUE
-    var srcBottom = Float.MIN_VALUE
-
-    for (corner in corners) {
-        val dx = corner.x - effCx
-        val dy = corner.y - effCy
-        val rx = dx * cosR - dy * sinR + bmpCx
-        val ry = dx * sinR + dy * cosR + bmpCy
-
-        val fx = if (flipHorizontal) bmpW - rx else rx
-        val fy = if (flipVertical) bmpH - ry else ry
-
-        srcLeft = min(srcLeft, fx)
-        srcTop = min(srcTop, fy)
-        srcRight = max(srcRight, fx)
-        srcBottom = max(srcBottom, fy)
+    // Undo flip to get rotated-only coordinates (cropAndSave applies flip after crop)
+    if (flipHorizontal) {
+        val tmpLeft = effectiveWidth - effRight
+        val tmpRight = effectiveWidth - effLeft
+        effLeft = tmpLeft
+        effRight = tmpRight
+    }
+    if (flipVertical) {
+        val tmpTop = effectiveHeight - effBottom
+        val tmpBottom = effectiveHeight - effTop
+        effTop = tmpTop
+        effBottom = tmpBottom
     }
 
     return RectF(
-        srcLeft.coerceIn(0f, bmpW),
-        srcTop.coerceIn(0f, bmpH),
-        srcRight.coerceIn(0f, bmpW),
-        srcBottom.coerceIn(0f, bmpH),
+        effLeft.coerceIn(0f, effectiveWidth),
+        effTop.coerceIn(0f, effectiveHeight),
+        effRight.coerceIn(0f, effectiveWidth),
+        effBottom.coerceIn(0f, effectiveHeight),
     )
 }

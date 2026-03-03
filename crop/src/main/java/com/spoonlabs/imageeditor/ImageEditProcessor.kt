@@ -113,12 +113,13 @@ object ImageEditProcessor {
                     resultBitmap!!.width, resultBitmap!!.height, Bitmap.Config.ARGB_8888,
                 )
                 val canvas = Canvas(brightBitmap)
-                val v = brightness * 255f
+                val scale = 1f + brightness * 0.2f
+                val offset = brightness * 80f
                 val cm = android.graphics.ColorMatrix(
                     floatArrayOf(
-                        1f, 0f, 0f, 0f, v,
-                        0f, 1f, 0f, 0f, v,
-                        0f, 0f, 1f, 0f, v,
+                        scale, 0f, 0f, 0f, offset,
+                        0f, scale, 0f, 0f, offset,
+                        0f, 0f, scale, 0f, offset,
                         0f, 0f, 0f, 1f, 0f,
                     ),
                 )

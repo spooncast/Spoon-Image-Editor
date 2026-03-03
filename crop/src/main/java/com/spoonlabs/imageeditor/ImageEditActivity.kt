@@ -99,6 +99,6 @@ class ImageEditActivity : ComponentActivity() {
         const val EXTRA_CONFIG = "image_edit_config"
         const val EXTRA_OUTPUT_URI = "image_edit_output_uri"
         const val EXTRA_ERROR_MESSAGE = "image_edit_error"
-        const val RESULT_ERROR = Activity.RESULT_FIRST_USER
+        const val RESULT_ERROR = RESULT_FIRST_USER
     }
 }

@@ -32,7 +32,7 @@ enum class AspectRatio(
     val ratioX: Float,
     val ratioY: Float,
 ) {
-    ORIGINAL("원본", 0f, 0f),
+    ORIGINAL("", 0f, 0f),
     RATIO_1_1("1:1", 1f, 1f),
     RATIO_4_3("4:3", 4f, 3f),
     RATIO_16_9("16:9", 16f, 9f),

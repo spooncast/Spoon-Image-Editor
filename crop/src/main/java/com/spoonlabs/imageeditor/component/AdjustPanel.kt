@@ -28,7 +28,7 @@ fun AdjustPanel(
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val brandColor = ImageEditorTheme.primary
+    val primaryColor = ImageEditorTheme.primary
     val iconColor = ImageEditorTheme.onSurface
     val textColor = ImageEditorTheme.onSurface
 
@@ -41,7 +41,7 @@ fun AdjustPanel(
         val percentage = (brightness * 100).roundToInt()
         Text(
             text = String.format(Locale.US, "%+d%%", percentage),
-            color = if (brightness != 0f) brandColor else textColor.copy(alpha = 0.7f),
+            color = if (brightness != 0f) primaryColor else textColor.copy(alpha = 0.7f),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
         )
