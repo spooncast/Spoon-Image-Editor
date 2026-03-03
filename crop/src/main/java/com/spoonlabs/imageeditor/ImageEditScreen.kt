@@ -164,29 +164,31 @@ internal fun ImageEditScreen(
                 IconButton(onClick = onCancel) {
                     Icon(Icons.Filled.Close, "Close", tint = iconColor)
                 }
-                val doneEnabled = getCropRect != null && !isProcessing
-                TextButton(
-                    onClick = {
-                        if (!doneEnabled) return@TextButton
-                        getCropRect?.invoke()?.let { rect ->
-                            isProcessing = true
-                            onConfirm(
-                                rect,
-                                rotation90,
-                                brightness,
-                                flipHorizontal,
-                                flipVertical,
-                            )
-                        }
-                    },
-                    enabled = doneEnabled,
-                ) {
-                    Text(
-                        text = stringResource(R.string.image_editor_done),
-                        color = if (doneEnabled) brandColor else brandColor.copy(alpha = 0.4f),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                    )
+                if (activePanel == ActivePanel.NONE) {
+                    val doneEnabled = getCropRect != null && !isProcessing
+                    TextButton(
+                        onClick = {
+                            if (!doneEnabled) return@TextButton
+                            getCropRect?.invoke()?.let { rect ->
+                                isProcessing = true
+                                onConfirm(
+                                    rect,
+                                    rotation90,
+                                    brightness,
+                                    flipHorizontal,
+                                    flipVertical,
+                                )
+                            }
+                        },
+                        enabled = doneEnabled,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.image_editor_done),
+                            color = if (doneEnabled) brandColor else brandColor.copy(alpha = 0.4f),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                        )
+                    }
                 }
             }
 
