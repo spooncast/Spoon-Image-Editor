@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -146,7 +147,8 @@ private fun RatioChip(
     val textColor = ImageEditorTheme.onSurface
 
     val label = when {
-        ratio == AspectRatio.ORIGINAL || ratio.isSymmetric || isLandscape -> ratio.label
+        ratio == AspectRatio.ORIGINAL -> stringResource(R.string.image_editor_original)
+        ratio.isSymmetric || isLandscape -> ratio.label
         else -> "${ratio.ratioY.toInt()}:${ratio.ratioX.toInt()}"
     }
 

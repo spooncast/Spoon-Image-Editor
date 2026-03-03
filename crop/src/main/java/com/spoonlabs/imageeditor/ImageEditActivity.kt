@@ -48,9 +48,7 @@ class ImageEditActivity : ComponentActivity() {
         setContent {
             ImageEditScreen(
                     bitmap = bitmap,
-                    aspectRatioX = config.aspectRatioX,
-                    aspectRatioY = config.aspectRatioY,
-                    onConfirm = { cropRect, rotationDegrees, brightness, flipH, flipV ->
+                onConfirm = { cropRect, rotationDegrees, brightness, flipH, flipV ->
                         lifecycleScope.launch {
                             val result = withContext(Dispatchers.IO) {
                                 ImageEditProcessor.cropAndSave(

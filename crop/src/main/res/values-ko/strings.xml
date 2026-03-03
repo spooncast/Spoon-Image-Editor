@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="image_editor_done">완료</string>
+    <string name="image_editor_original">원본</string>
+</resources>

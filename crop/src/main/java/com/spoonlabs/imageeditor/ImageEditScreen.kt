@@ -27,11 +27,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -44,8 +45,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.spoonlabs.imageeditor.component.AdjustPanel
 import com.spoonlabs.imageeditor.component.AspectRatio
 import com.spoonlabs.imageeditor.component.AspectRatioSelector
@@ -60,8 +64,6 @@ private enum class ActivePanel {
 @Composable
 internal fun ImageEditScreen(
     bitmap: Bitmap,
-    aspectRatioX: Float?,
-    aspectRatioY: Float?,
     onConfirm: (cropRect: RectF, rotationDegrees: Float, brightness: Float, flipHorizontal: Boolean, flipVertical: Boolean) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -152,7 +154,7 @@ internal fun ImageEditScreen(
                 IconButton(onClick = onCancel) {
                     Icon(Icons.Filled.Close, "Close", tint = iconColor)
                 }
-                IconButton(onClick = {
+                TextButton(onClick = {
                     getCropRect?.invoke()?.let { rect ->
                         onConfirm(
                             rect,
@@ -163,7 +165,12 @@ internal fun ImageEditScreen(
                         )
                     }
                 }) {
-                    Icon(Icons.Filled.Check, "Confirm", tint = brandColor)
+                    Text(
+                        text = stringResource(R.string.image_editor_done),
+                        color = brandColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                    )
                 }
             }
 
@@ -335,8 +342,6 @@ private fun createPreviewBitmap(): Bitmap {
 private fun PreviewImageEditScreenDefault() {
     ImageEditScreen(
         bitmap = createPreviewBitmap(),
-        aspectRatioX = null,
-        aspectRatioY = null,
         onConfirm = { _, _, _, _, _ -> },
         onCancel = {},
     )
@@ -354,8 +359,6 @@ private fun PreviewImageEditScreenDefault() {
 private fun PreviewImageEditScreenCropPanel() {
     ImageEditScreen(
         bitmap = createPreviewBitmap(),
-        aspectRatioX = null,
-        aspectRatioY = null,
         onConfirm = { _, _, _, _, _ -> },
         onCancel = {},
     )
@@ -373,8 +376,6 @@ private fun PreviewImageEditScreenCropPanel() {
 private fun PreviewImageEditScreenAdjustPanel() {
     ImageEditScreen(
         bitmap = createPreviewBitmap(),
-        aspectRatioX = null,
-        aspectRatioY = null,
         onConfirm = { _, _, _, _, _ -> },
         onCancel = {},
     )
