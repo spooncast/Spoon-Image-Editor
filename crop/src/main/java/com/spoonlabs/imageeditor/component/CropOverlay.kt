@@ -15,33 +15,29 @@ private const val BORDER_STROKE_WIDTH = 2.5f
 private const val BORDER_OUTLINE_WIDTH = BORDER_STROKE_WIDTH + 2f
 
 fun DrawScope.drawCropOverlay(cropRect: Rect) {
-    // Dim areas outside crop rect
-    // Top
+    if (cropRect.width <= 0f || cropRect.height <= 0f) return
+
     drawRect(
         color = DIM_COLOR,
         topLeft = Offset.Zero,
         size = Size(size.width, cropRect.top),
     )
-    // Bottom
     drawRect(
         color = DIM_COLOR,
         topLeft = Offset(0f, cropRect.bottom),
         size = Size(size.width, size.height - cropRect.bottom),
     )
-    // Left
     drawRect(
         color = DIM_COLOR,
         topLeft = Offset(0f, cropRect.top),
         size = Size(cropRect.left, cropRect.height),
     )
-    // Right
     drawRect(
         color = DIM_COLOR,
         topLeft = Offset(cropRect.right, cropRect.top),
         size = Size(size.width - cropRect.right, cropRect.height),
     )
 
-    // Border — black outline behind white border for visibility on light backgrounds
     drawRect(
         color = BORDER_OUTLINE_COLOR,
         topLeft = cropRect.topLeft,
@@ -55,12 +51,10 @@ fun DrawScope.drawCropOverlay(cropRect: Rect) {
         style = Stroke(width = BORDER_STROKE_WIDTH),
     )
 
-    // Grid lines (rule of thirds)
     val thirdW = cropRect.width / 3f
     val thirdH = cropRect.height / 3f
 
     for (i in 1..2) {
-        // Vertical lines
         val x = cropRect.left + thirdW * i
         drawLine(
             color = GRID_COLOR,
@@ -68,7 +62,6 @@ fun DrawScope.drawCropOverlay(cropRect: Rect) {
             end = Offset(x, cropRect.bottom),
             strokeWidth = GRID_STROKE_WIDTH,
         )
-        // Horizontal lines
         val y = cropRect.top + thirdH * i
         drawLine(
             color = GRID_COLOR,

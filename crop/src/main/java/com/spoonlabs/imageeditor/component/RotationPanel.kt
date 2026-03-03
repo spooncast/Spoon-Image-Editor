@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -41,7 +39,6 @@ fun RotationPanel(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // 각도 표시
         Text(
             text = String.format(Locale.US, "%.1f°", fineRotation),
             color = if (fineRotation != 0f) brandColor else textColor.copy(alpha = 0.7f),
@@ -49,7 +46,6 @@ fun RotationPanel(
             fontWeight = FontWeight.Bold,
         )
 
-        // 슬라이더 + 리셋 버튼 + 90° 버튼
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -57,20 +53,18 @@ fun RotationPanel(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            // 리셋 버튼 (X)
             IconButton(
                 onClick = onReset,
                 modifier = Modifier.size(36.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Close,
+                    painter = painterResource(id = R.drawable.ic_reset),
                     contentDescription = "Reset rotation",
                     tint = iconColor.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp),
                 )
             }
 
-            // 눈금자 + 슬라이더 (공통 컴포넌트)
             TickSlider(
                 value = fineRotation,
                 onValueChange = { onFineRotationChange((it * 2f).roundToInt() / 2f) },
@@ -79,7 +73,6 @@ fun RotationPanel(
                 modifier = Modifier.weight(1f),
             )
 
-            // 90° 회전 버튼
             IconButton(
                 onClick = onRotate90,
                 modifier = Modifier.size(36.dp),

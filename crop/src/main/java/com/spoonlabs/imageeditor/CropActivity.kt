@@ -1,10 +1,8 @@
 package com.spoonlabs.imageeditor
 
-import android.R
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -31,7 +29,6 @@ class CropActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
 
-        // Status bar 완전히 숨기기
         WindowCompat.getInsetsController(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.statusBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -60,6 +57,7 @@ class CropActivity : ComponentActivity() {
                         lifecycleScope.launch {
                             val result = withContext(Dispatchers.IO) {
                                 CropImageProcessor.cropAndSave(
+                                    context = this@CropActivity,
                                     sourceBitmap = bitmap,
                                     cropRect = cropRect,
                                     rotationDegrees = rotationDegrees,
@@ -107,7 +105,6 @@ class CropActivity : ComponentActivity() {
         const val EXTRA_CROP_CONFIG = "crop_config"
         const val EXTRA_OUTPUT_URI = "crop_output_uri"
         const val EXTRA_ERROR_MESSAGE = "crop_error"
-        const val RESULT_ERROR = 96
-        const val REQUEST_CROP = 69
+        const val RESULT_ERROR = Activity.RESULT_FIRST_USER
     }
 }

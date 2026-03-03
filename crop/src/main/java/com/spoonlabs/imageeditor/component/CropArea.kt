@@ -83,7 +83,6 @@ fun CropArea(
     val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
     val bmpW = bitmap.width.toFloat()
     val bmpH = bitmap.height.toFloat()
-    // fitW/fitH: 크롭 틀 크기 계산 기준 (ORIGINAL+회전 시 회전된 이미지 크기 사용)
     val fitW = if (fitImageWidth > 0f) fitImageWidth else bmpW
     val fitH = if (fitImageHeight > 0f) fitImageHeight else bmpH
 
@@ -95,12 +94,10 @@ fun CropArea(
     var initialized by remember { mutableStateOf(false) }
     var lastCropRect by remember { mutableStateOf(Rect.Zero) }
 
-    // 회전된 이미지의 bounding box (렌더링 용도)
     val (effectiveWidth, effectiveHeight) = remember(rotationDegrees, bmpW, bmpH) {
         computeEffectiveSize(bmpW, bmpH, rotationDegrees)
     }
 
-    // cropRect (캔버스/인셋 기준) — fitW/fitH 기준으로 크기 계산
     val cropRect = remember(canvasSize, aspectRatioX, aspectRatioY, fitW, fitH, topInset, bottomInset) {
         if (canvasSize == IntSize.Zero) return@remember Rect.Zero
         calculateCropRect(
@@ -114,7 +111,6 @@ fun CropArea(
         )
     }
 
-    // baseScale: fitW/fitH 기준으로 cropRect에 맞추는 스케일
     val baseScale = remember(cropRect, fitW, fitH) {
         if (cropRect == Rect.Zero || fitW <= 0f || fitH <= 0f) 1f
         else max(
@@ -125,7 +121,6 @@ fun CropArea(
 
     val renderScale = baseScale * transform.gestureZoom
 
-    // 이미지를 cropRect 중앙에 맞추는 헬퍼 (effective 크기 기준으로 센터링)
     fun centerImage(zoom: Float = transform.gestureZoom) {
         val scale = baseScale * zoom
         val imgW = effectiveWidth * scale
@@ -137,16 +132,13 @@ fun CropArea(
         )
     }
 
-    // 초기 센터링
     if (!initialized && cropRect != Rect.Zero) {
         initialized = true
         centerImage()
     }
 
-    // cropRect 변경 시 (패널 열기/닫기) — 확대 상태 유지, 위치만 재조정
     if (initialized && cropRect != Rect.Zero && !cropRect.approximatelyEquals(lastCropRect)) {
         lastCropRect = cropRect
-        // zoom 유지하면서 clamp만 재적용
         val scale = baseScale * transform.gestureZoom
         val imgW = effectiveWidth * scale
         val imgH = effectiveHeight * scale
@@ -156,45 +148,34 @@ fun CropArea(
         )
     }
 
-    // 90° 버튼 회전 시 — 확대 상태 유지, 리센터
     if (lastRotation != rotationDegrees) {
         lastRotation = rotationDegrees
-        // zoom 유지하면서 센터링
         centerImage(zoom = transform.gestureZoom)
     }
 
-    // 비율 변경 시 — zoom 리셋 + 센터
     val currentAspectKey = "${aspectRatioX}_${aspectRatioY}"
     if (lastAspectKey != currentAspectKey && canvasSize != IntSize.Zero) {
         lastAspectKey = currentAspectKey
         centerImage(zoom = 1f)
     }
 
-    // Brightness — scale 기반 밝기 조정
     val brightnessFilter = remember(brightness) {
         if (brightness == 0f) null
         else {
-            val matrix = ColorMatrix()
-            if (brightness > 0f) {
-                val scale = 1f + brightness * 0.5f
-                val offset = brightness * 30f
-                matrix.set(0, 0, scale)
-                matrix.set(1, 1, scale)
-                matrix.set(2, 2, scale)
-                matrix.set(0, 4, offset)
-                matrix.set(1, 4, offset)
-                matrix.set(2, 4, offset)
-            } else {
-                val scale = 1f + brightness * 0.5f
-                matrix.set(0, 0, scale)
-                matrix.set(1, 1, scale)
-                matrix.set(2, 2, scale)
+            val scale = 1f + brightness * 0.5f
+            val offset = if (brightness > 0f) brightness * 30f else 0f
+            val matrix = ColorMatrix().apply {
+                set(0, 0, scale)
+                set(1, 1, scale)
+                set(2, 2, scale)
+                set(0, 4, offset)
+                set(1, 4, offset)
+                set(2, 4, offset)
             }
             ColorFilter.colorMatrix(matrix)
         }
     }
 
-    // crop state 제공 — LaunchedEffect로 key 지정
     LaunchedEffect(
         cropRect,
         transform.offsetX,
@@ -232,23 +213,18 @@ fun CropArea(
 
                     val currentTransform = transform
 
-                    // baseScale: fitW/fitH 기준
                     val curBaseScale = if (fitW <= 0f || fitH <= 0f) 1f
                     else max(cropRect.width / fitW, cropRect.height / fitH)
 
-                    // effective 크기 (clamp 용도)
                     val (curEffW, curEffH) = computeEffectiveSize(bmpW, bmpH, rotationDegrees)
 
-                    // 줌
                     val oldScale = curBaseScale * currentTransform.gestureZoom
                     val newGestureZoom = (currentTransform.gestureZoom * zoom).coerceIn(1f, MAX_GESTURE_ZOOM)
                     val newScale = curBaseScale * newGestureZoom
 
-                    // centroid 기반 확대 + 이동
                     val newOffsetX = centroid.x - (centroid.x - currentTransform.offsetX) * (newScale / oldScale) + pan.x
                     val newOffsetY = centroid.y - (centroid.y - currentTransform.offsetY) * (newScale / oldScale) + pan.y
 
-                    // clamp (effective 크기 기준)
                     val imgW = curEffW * newScale
                     val imgH = curEffH * newScale
 
@@ -311,7 +287,6 @@ private fun calculateCropRect(
     val cropHeight: Float
 
     if (aspectRatioX != null && aspectRatioY != null && aspectRatioY > 0f) {
-        // 비율 지정 → 사용 가능한 전체 공간에서 최대 크기로 배치
         val ratio = aspectRatioX / aspectRatioY
         if (availableWidth / availableHeight > ratio) {
             cropHeight = availableHeight
@@ -321,7 +296,6 @@ private fun calculateCropRect(
             cropHeight = cropWidth / ratio
         }
     } else {
-        // 자유 비율 → 이미지에 맞춤
         val fitScale = min(
             availableWidth / imageWidth,
             availableHeight / imageHeight,

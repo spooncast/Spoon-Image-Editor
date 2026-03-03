@@ -26,11 +26,6 @@ import androidx.compose.ui.unit.sp
 import com.spoonlabs.imageeditor.R
 import net.spooncast.designsystem.foundation.theme.SpoonTheme
 
-/**
- * 비율 정의 — x:y는 항상 가로:세로 기준의 "기본 형태"
- * isLandscape = true → x:y 그대로 (가로)
- * isLandscape = false → y:x (세로)
- */
 enum class AspectRatio(
     val label: String,
     val ratioX: Float,
@@ -46,19 +41,16 @@ enum class AspectRatio(
     RATIO_7_5("7:5", 7f, 5f),
     ;
 
-    /** 실제 적용할 x값 (orientation 반영) */
     fun x(isLandscape: Boolean): Float? {
         if (this == ORIGINAL) return null
         return if (isLandscape) ratioX else ratioY
     }
 
-    /** 실제 적용할 y값 (orientation 반영) */
     fun y(isLandscape: Boolean): Float? {
         if (this == ORIGINAL) return null
         return if (isLandscape) ratioY else ratioX
     }
 
-    /** 1:1은 가로/세로 구분 없음 */
     val isSymmetric: Boolean get() = ratioX == ratioY
 }
 
@@ -76,19 +68,16 @@ fun AspectRatioSelector(
             .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // 가로/세로 토글 버튼
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 12.dp),
         ) {
-            // 세로 아이콘 (portrait)
             OrientationToggle(
                 isSelected = !isLandscape,
                 isPortrait = true,
                 onClick = { if (isLandscape) onToggleOrientation() },
             )
-            // 가로 아이콘 (landscape)
             OrientationToggle(
                 isSelected = isLandscape,
                 isPortrait = false,
@@ -97,7 +86,6 @@ fun AspectRatioSelector(
             )
         }
 
-        // 비율 목록 (가로 스크롤)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -157,15 +145,9 @@ private fun RatioChip(
     val brandColor = SpoonTheme.colors.fillBrandDefault
     val textColor = SpoonTheme.colors.textFixedWhite
 
-    // 라벨
-    val label = if (ratio == AspectRatio.ORIGINAL) {
-        ratio.label
-    } else if (ratio.isSymmetric) {
-        ratio.label
-    } else if (isLandscape) {
-        ratio.label  // "4:3" 그대로
-    } else {
-        "${ratio.ratioY.toInt()}:${ratio.ratioX.toInt()}"  // "3:4"
+    val label = when {
+        ratio == AspectRatio.ORIGINAL || ratio.isSymmetric || isLandscape -> ratio.label
+        else -> "${ratio.ratioY.toInt()}:${ratio.ratioX.toInt()}"
     }
 
     Text(

@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import androidx.activity.result.contract.ActivityResultContract
 
 class CropContract : ActivityResultContract<CropConfig, CropResult>() {
@@ -17,7 +18,12 @@ class CropContract : ActivityResultContract<CropConfig, CropResult>() {
     override fun parseResult(resultCode: Int, intent: Intent?): CropResult {
         return when (resultCode) {
             Activity.RESULT_OK -> {
-                val uri = intent?.getParcelableExtra<Uri>(CropActivity.EXTRA_OUTPUT_URI)
+                val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent?.getParcelableExtra(CropActivity.EXTRA_OUTPUT_URI, Uri::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent?.getParcelableExtra(CropActivity.EXTRA_OUTPUT_URI)
+                }
                 if (uri != null) {
                     CropResult.Success(uri)
                 } else {

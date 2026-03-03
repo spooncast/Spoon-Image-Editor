@@ -3,13 +3,11 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- 중앙 점선 (3등분, 균등 배치: 3~7, 10~14, 17~21) -->
     <path
         android:pathData="M12,3L12,7M12,10L12,14M12,17L12,21"
         android:strokeWidth="2.5"
         android:strokeColor="#FFFFFF"
         android:strokeLineCap="round" />
-    <!-- 좌측 화살표 (5→3으로 더 왼쪽으로) -->
     <path
         android:pathData="M7,8L3,12L7,16"
         android:strokeWidth="2.5"
@@ -17,7 +15,6 @@
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:fillColor="#00000000" />
-    <!-- 우측 화살표 (19→21로 더 오른쪽으로) -->
     <path
         android:pathData="M17,8L21,12L17,16"
         android:strokeWidth="2.5"
