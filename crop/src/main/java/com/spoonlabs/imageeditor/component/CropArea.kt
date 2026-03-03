@@ -116,7 +116,7 @@ fun CropArea(
         else max(
             cropRect.width / fitW,
             cropRect.height / fitH,
-        )
+        ).coerceIn(0.001f, 100f)
     }
 
     val renderScale = baseScale * transform.gestureZoom
@@ -162,8 +162,9 @@ fun CropArea(
     val brightnessFilter = remember(brightness) {
         if (brightness == 0f) null
         else {
-            val scale = 1f + brightness * 0.2f
-            val offset = brightness * 80f
+            val clampedBrightness = brightness.coerceIn(-1f, 1f)
+            val scale = 1f + clampedBrightness * 0.2f
+            val offset = clampedBrightness * 80f
             val matrix = ColorMatrix().apply {
                 set(0, 0, scale)
                 set(1, 1, scale)
@@ -219,6 +220,7 @@ fun CropArea(
                     val (curEffW, curEffH) = computeEffectiveSize(bmpW, bmpH, rotationDegrees)
 
                     val oldScale = curBaseScale * currentTransform.gestureZoom
+                    if (oldScale <= 0f) return@detectTransformGestures
                     val newGestureZoom = (currentTransform.gestureZoom * zoom).coerceIn(1f, MAX_GESTURE_ZOOM)
                     val newScale = curBaseScale * newGestureZoom
 
@@ -336,6 +338,8 @@ private fun computeSourceCropRect(
     flipHorizontal: Boolean = false,
     flipVertical: Boolean = false,
 ): RectF {
+    if (scale <= 0f) return RectF(0f, 0f, bitmapWidth.toFloat(), bitmapHeight.toFloat())
+
     val bmpW = bitmapWidth.toFloat()
     val bmpH = bitmapHeight.toFloat()
     val radians = Math.toRadians(rotationDegrees.toDouble())

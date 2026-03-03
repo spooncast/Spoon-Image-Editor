@@ -27,7 +27,7 @@ class ImageEditActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
 
-        WindowCompat.getInsetsController(window, window.decorView).apply {
+        WindowCompat.getInsetsController(window, window.decorView)?.apply {
             hide(WindowInsetsCompat.Type.statusBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }

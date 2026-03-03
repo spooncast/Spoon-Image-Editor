@@ -35,9 +35,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +60,16 @@ private enum class ActivePanel {
     NONE, CROP, ADJUST,
 }
 
+private val ActivePanelSaver = Saver<ActivePanel, String>(
+    save = { it.name },
+    restore = { ActivePanel.valueOf(it) },
+)
+
+private val AspectRatioSaver = Saver<AspectRatio, String>(
+    save = { it.name },
+    restore = { AspectRatio.valueOf(it) },
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ImageEditScreen(
@@ -72,19 +83,19 @@ internal fun ImageEditScreen(
     val scrimColor = ImageEditorTheme.scrim
     val panelColor = Color(0xFF262626)
 
-    var activePanel by remember { mutableStateOf(ActivePanel.NONE) }
+    var activePanel by rememberSaveable(stateSaver = ActivePanelSaver) { mutableStateOf(ActivePanel.NONE) }
 
     BackHandler(enabled = activePanel != ActivePanel.NONE) {
         activePanel = ActivePanel.NONE
     }
 
-    var selectedAspectRatio by remember { mutableStateOf(AspectRatio.ORIGINAL) }
-    var isLandscape by remember { mutableStateOf(false) }
+    var selectedAspectRatio by rememberSaveable(stateSaver = AspectRatioSaver) { mutableStateOf(AspectRatio.ORIGINAL) }
+    var isLandscape by rememberSaveable { mutableStateOf(false) }
 
-    var rotation90 by remember { mutableFloatStateOf(0f) }
-    var brightness by remember { mutableFloatStateOf(0f) }
-    var flipHorizontal by remember { mutableStateOf(false) }
-    var flipVertical by remember { mutableStateOf(false) }
+    var rotation90 by rememberSaveable { mutableStateOf(0f) }
+    var brightness by rememberSaveable { mutableStateOf(0f) }
+    var flipHorizontal by rememberSaveable { mutableStateOf(false) }
+    var flipVertical by rememberSaveable { mutableStateOf(false) }
 
     val is90or270 = ((rotation90 / 90f).toInt() % 2) != 0
     val effectiveRatioX: Float? = if (selectedAspectRatio == AspectRatio.ORIGINAL) {
@@ -99,8 +110,9 @@ internal fun ImageEditScreen(
     }
 
     var getCropRect by remember { mutableStateOf<(() -> RectF)?>(null) }
-    var bottomControlsHeight by remember { mutableFloatStateOf(0f) }
-    var topBarHeight by remember { mutableFloatStateOf(0f) }
+    var isProcessing by remember { mutableStateOf(false) }
+    var bottomControlsHeight by remember { mutableStateOf(0f) }
+    var topBarHeight by remember { mutableStateOf(0f) }
 
     Column(
         modifier = Modifier
@@ -152,20 +164,26 @@ internal fun ImageEditScreen(
                 IconButton(onClick = onCancel) {
                     Icon(Icons.Filled.Close, "Close", tint = iconColor)
                 }
-                TextButton(onClick = {
-                    getCropRect?.invoke()?.let { rect ->
-                        onConfirm(
-                            rect,
-                            rotation90,
-                            brightness,
-                            flipHorizontal,
-                            flipVertical,
-                        )
-                    }
-                }) {
+                val doneEnabled = getCropRect != null && !isProcessing
+                TextButton(
+                    onClick = {
+                        if (!doneEnabled) return@TextButton
+                        getCropRect?.invoke()?.let { rect ->
+                            isProcessing = true
+                            onConfirm(
+                                rect,
+                                rotation90,
+                                brightness,
+                                flipHorizontal,
+                                flipVertical,
+                            )
+                        }
+                    },
+                    enabled = doneEnabled,
+                ) {
                     Text(
                         text = stringResource(R.string.image_editor_done),
-                        color = brandColor,
+                        color = if (doneEnabled) brandColor else brandColor.copy(alpha = 0.4f),
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                     )

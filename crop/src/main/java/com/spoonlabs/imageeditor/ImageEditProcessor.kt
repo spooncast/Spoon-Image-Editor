@@ -13,6 +13,7 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import androidx.core.graphics.createBitmap
 
 object ImageEditProcessor {
 
@@ -56,9 +57,9 @@ object ImageEditProcessor {
         val sinA = abs(sin(radians)).toFloat()
 
         val rotatedW = (sourceBitmap.width * cosA + sourceBitmap.height * sinA)
-            .roundToInt().coerceIn(1, MAX_BITMAP_SIZE)
+            .coerceIn(1f, MAX_BITMAP_SIZE.toFloat()).roundToInt()
         val rotatedH = (sourceBitmap.width * sinA + sourceBitmap.height * cosA)
-            .roundToInt().coerceIn(1, MAX_BITMAP_SIZE)
+            .coerceIn(1f, MAX_BITMAP_SIZE.toFloat()).roundToInt()
 
         var rotatedBitmap: Bitmap? = null
         var resultBitmap: Bitmap? = null
@@ -86,35 +87,36 @@ object ImageEditProcessor {
             val w = cropRect.width().toInt().coerceIn(1, rotatedBitmap.width - x)
             val h = cropRect.height().toInt().coerceIn(1, rotatedBitmap.height - y)
 
-            resultBitmap = Bitmap.createBitmap(rotatedBitmap, x, y, w, h)
+            var currentResult = Bitmap.createBitmap(rotatedBitmap, x, y, w, h)
+            resultBitmap = currentResult
 
             if (flipHorizontal || flipVertical) {
                 val flipMatrix = Matrix().apply {
                     postScale(
                         if (flipHorizontal) -1f else 1f,
                         if (flipVertical) -1f else 1f,
-                        resultBitmap!!.width / 2f,
-                        resultBitmap!!.height / 2f,
+                        currentResult.width / 2f,
+                        currentResult.height / 2f,
                     )
                 }
                 val flipped = Bitmap.createBitmap(
-                    resultBitmap!!, 0, 0,
-                    resultBitmap!!.width, resultBitmap!!.height,
+                    currentResult, 0, 0,
+                    currentResult.width, currentResult.height,
                     flipMatrix, true,
                 )
-                if (flipped !== resultBitmap) {
-                    resultBitmap!!.recycle()
+                if (flipped !== currentResult) {
+                    currentResult.recycle()
                 }
-                resultBitmap = flipped
+                currentResult = flipped
+                resultBitmap = currentResult
             }
 
             if (brightness != 0f) {
-                val brightBitmap = Bitmap.createBitmap(
-                    resultBitmap!!.width, resultBitmap!!.height, Bitmap.Config.ARGB_8888,
-                )
+                val clampedBrightness = brightness.coerceIn(-1f, 1f)
+                val brightBitmap = createBitmap(currentResult.width, currentResult.height)
                 val canvas = Canvas(brightBitmap)
-                val scale = 1f + brightness * 0.2f
-                val offset = brightness * 80f
+                val scale = 1f + clampedBrightness * 0.2f
+                val offset = clampedBrightness * 80f
                 val cm = android.graphics.ColorMatrix(
                     floatArrayOf(
                         scale, 0f, 0f, 0f, offset,
@@ -124,15 +126,16 @@ object ImageEditProcessor {
                     ),
                 )
                 canvas.drawBitmap(
-                    resultBitmap!!, 0f, 0f,
+                    currentResult, 0f, 0f,
                     Paint().apply { colorFilter = ColorMatrixColorFilter(cm) },
                 )
-                resultBitmap!!.recycle()
-                resultBitmap = brightBitmap
+                currentResult.recycle()
+                currentResult = brightBitmap
+                resultBitmap = currentResult
             }
 
             context.contentResolver.openOutputStream(outputUri)?.use { os ->
-                resultBitmap!!.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, os)
+                currentResult.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, os)
             } ?: throw IllegalArgumentException("Cannot open output URI: $outputUri")
 
             outputUri
