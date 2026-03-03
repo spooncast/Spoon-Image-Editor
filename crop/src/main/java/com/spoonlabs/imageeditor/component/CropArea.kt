@@ -349,29 +349,53 @@ private fun computeSourceCropRect(
     val effectiveHeight = bmpW * sinA + bmpH * cosA
 
     // Screen crop rect → effective (rotated+flipped) space
-    var effLeft = (cropRect.left - offsetX) / scale
-    var effTop = (cropRect.top - offsetY) / scale
-    var effRight = (cropRect.right - offsetX) / scale
-    var effBottom = (cropRect.bottom - offsetY) / scale
+    // After undoing translate and scale, coordinates are in R * F * local space
+    val effLeft = (cropRect.left - offsetX) / scale
+    val effTop = (cropRect.top - offsetY) / scale
+    val effRight = (cropRect.right - offsetX) / scale
+    val effBottom = (cropRect.bottom - offsetY) / scale
 
-    // Undo flip to get rotated-only coordinates (cropAndSave applies flip after crop)
-    if (flipHorizontal) {
-        val tmpLeft = effectiveWidth - effRight
-        val tmpRight = effectiveWidth - effLeft
-        effLeft = tmpLeft
-        effRight = tmpRight
+    if (!flipHorizontal && !flipVertical) {
+        return RectF(
+            effLeft.coerceIn(0f, effectiveWidth),
+            effTop.coerceIn(0f, effectiveHeight),
+            effRight.coerceIn(0f, effectiveWidth),
+            effBottom.coerceIn(0f, effectiveHeight),
+        )
     }
-    if (flipVertical) {
-        val tmpTop = effectiveHeight - effBottom
-        val tmpBottom = effectiveHeight - effTop
-        effTop = tmpTop
-        effBottom = tmpBottom
+
+    // Convert from visual (R * F * local) space to rotated bitmap (R * local) space.
+    // Formula: rotatedPos = R * F^-1 * R^-1 * effPos
+    // All transforms share pivot (cx, cy).
+    val cx = effectiveWidth / 2f
+    val cy = effectiveHeight / 2f
+    val cosR = cos(radians).toFloat()
+    val sinR = sin(radians).toFloat()
+
+    fun transformPoint(x: Float, y: Float): Pair<Float, Float> {
+        var px = x - cx
+        var py = y - cy
+        // Undo rotation (R^-1)
+        var tx = px * cosR - py * sinR
+        var ty = px * sinR + py * cosR
+        // Undo flip (self-inverse)
+        if (flipHorizontal) tx = -tx
+        if (flipVertical) ty = -ty
+        // Re-apply rotation
+        px = tx * cosR + ty * sinR
+        py = -tx * sinR + ty * cosR
+        return Pair(px + cx, py + cy)
     }
+
+    val (x1, y1) = transformPoint(effLeft, effTop)
+    val (x2, y2) = transformPoint(effRight, effTop)
+    val (x3, y3) = transformPoint(effLeft, effBottom)
+    val (x4, y4) = transformPoint(effRight, effBottom)
 
     return RectF(
-        effLeft.coerceIn(0f, effectiveWidth),
-        effTop.coerceIn(0f, effectiveHeight),
-        effRight.coerceIn(0f, effectiveWidth),
-        effBottom.coerceIn(0f, effectiveHeight),
+        minOf(x1, x2, x3, x4).coerceIn(0f, effectiveWidth),
+        minOf(y1, y2, y3, y4).coerceIn(0f, effectiveHeight),
+        maxOf(x1, x2, x3, x4).coerceIn(0f, effectiveWidth),
+        maxOf(y1, y2, y3, y4).coerceIn(0f, effectiveHeight),
     )
 }
