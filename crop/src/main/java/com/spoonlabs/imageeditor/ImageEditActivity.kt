@@ -15,8 +15,6 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import net.spooncast.designsystem.foundation.color.darkColors
-import net.spooncast.designsystem.foundation.theme.SpoonTheme
 
 class ImageEditActivity : ComponentActivity() {
 
@@ -48,8 +46,7 @@ class ImageEditActivity : ComponentActivity() {
         sourceBitmap = bitmap
 
         setContent {
-            SpoonTheme(colors = darkColors) {
-                ImageEditScreen(
+            ImageEditScreen(
                     bitmap = bitmap,
                     aspectRatioX = config.aspectRatioX,
                     aspectRatioY = config.aspectRatioY,
@@ -83,7 +80,6 @@ class ImageEditActivity : ComponentActivity() {
                         finish()
                     },
                 )
-            }
         }
     }
 

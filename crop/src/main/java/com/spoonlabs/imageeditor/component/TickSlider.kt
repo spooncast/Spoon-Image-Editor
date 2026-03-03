@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import net.spooncast.designsystem.foundation.theme.SpoonTheme
+import com.spoonlabs.imageeditor.ImageEditorTheme
 import kotlin.math.abs
 
 @Immutable
@@ -65,7 +65,7 @@ fun TickSlider(
     tickConfig: TickConfig,
     modifier: Modifier = Modifier,
 ) {
-    val brandColor = SpoonTheme.colors.fillBrandDefault
+    val brandColor = ImageEditorTheme.primary
 
     Box(
         modifier = modifier

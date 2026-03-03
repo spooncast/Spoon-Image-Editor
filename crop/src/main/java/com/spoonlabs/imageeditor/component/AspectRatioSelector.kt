@@ -23,8 +23,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.spoonlabs.imageeditor.ImageEditorTheme
 import com.spoonlabs.imageeditor.R
-import net.spooncast.designsystem.foundation.theme.SpoonTheme
 
 enum class AspectRatio(
     val label: String,
@@ -114,8 +114,8 @@ private fun OrientationToggle(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val brandColor = SpoonTheme.colors.fillBrandDefault
-    val iconColor = SpoonTheme.colors.iconFixedWhite
+    val brandColor = ImageEditorTheme.primary
+    val iconColor = ImageEditorTheme.onSurface
     val iconRes = if (isPortrait) R.drawable.ic_orientation_portrait else R.drawable.ic_orientation_landscape
     val tint = if (isSelected) brandColor else iconColor.copy(alpha = 0.5f)
     Box(
@@ -142,8 +142,8 @@ private fun RatioChip(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
-    val brandColor = SpoonTheme.colors.fillBrandDefault
-    val textColor = SpoonTheme.colors.textFixedWhite
+    val brandColor = ImageEditorTheme.primary
+    val textColor = ImageEditorTheme.onSurface
 
     val label = when {
         ratio == AspectRatio.ORIGINAL || ratio.isSymmetric || isLandscape -> ratio.label

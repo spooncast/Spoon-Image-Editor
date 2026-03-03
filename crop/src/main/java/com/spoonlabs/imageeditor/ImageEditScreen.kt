@@ -51,7 +51,6 @@ import com.spoonlabs.imageeditor.component.AspectRatio
 import com.spoonlabs.imageeditor.component.AspectRatioSelector
 import com.spoonlabs.imageeditor.component.CropArea
 import com.spoonlabs.imageeditor.component.RotationPanel
-import net.spooncast.designsystem.foundation.theme.SpoonTheme
 
 private enum class ActivePanel {
     NONE, CROP, ROTATE, ADJUST,
@@ -66,10 +65,10 @@ internal fun ImageEditScreen(
     onConfirm: (cropRect: RectF, rotationDegrees: Float, brightness: Float, flipHorizontal: Boolean, flipVertical: Boolean) -> Unit,
     onCancel: () -> Unit,
 ) {
-    val brandColor = SpoonTheme.colors.fillBrandDefault
-    val iconColor = SpoonTheme.colors.iconFixedWhite
-    val borderColor = SpoonTheme.colors.borderAlphaWhite200
-    val scrimColor = SpoonTheme.colors.backgroundScrim200
+    val brandColor = ImageEditorTheme.primary
+    val iconColor = ImageEditorTheme.onSurface
+    val borderColor = ImageEditorTheme.outline
+    val scrimColor = ImageEditorTheme.scrim
     val panelColor = Color(0xFF262626)
 
     var activePanel by remember { mutableStateOf(ActivePanel.NONE) }
@@ -113,9 +112,9 @@ internal fun ImageEditScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    start = SpoonTheme.dimen.paddingMS,
-                    end = SpoonTheme.dimen.paddingMS,
-                    bottom = SpoonTheme.dimen.paddingMS,
+                    start = 12.dp,
+                    end = 12.dp,
+                    bottom = 12.dp,
                 )
                 .weight(1f)
         ) {
@@ -289,8 +288,8 @@ private fun TabIcon(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
-    val brandColor = SpoonTheme.colors.fillBrandDefault
-    val iconColor = SpoonTheme.colors.iconFixedWhite
+    val brandColor = ImageEditorTheme.primary
+    val iconColor = ImageEditorTheme.onSurface
     val tint = if (isSelected) brandColor else iconColor
     Box(
         modifier = Modifier
@@ -334,15 +333,13 @@ private fun createPreviewBitmap(): Bitmap {
 )
 @Composable
 private fun PreviewImageEditScreenDefault() {
-    SpoonTheme {
-        ImageEditScreen(
-            bitmap = createPreviewBitmap(),
-            aspectRatioX = null,
-            aspectRatioY = null,
-            onConfirm = { _, _, _, _, _ -> },
-            onCancel = {},
-        )
-    }
+    ImageEditScreen(
+        bitmap = createPreviewBitmap(),
+        aspectRatioX = null,
+        aspectRatioY = null,
+        onConfirm = { _, _, _, _, _ -> },
+        onCancel = {},
+    )
 }
 
 @Preview(
@@ -355,15 +352,13 @@ private fun PreviewImageEditScreenDefault() {
 )
 @Composable
 private fun PreviewImageEditScreenCropPanel() {
-    SpoonTheme {
-        ImageEditScreen(
-            bitmap = createPreviewBitmap(),
-            aspectRatioX = null,
-            aspectRatioY = null,
-            onConfirm = { _, _, _, _, _ -> },
-            onCancel = {},
-        )
-    }
+    ImageEditScreen(
+        bitmap = createPreviewBitmap(),
+        aspectRatioX = null,
+        aspectRatioY = null,
+        onConfirm = { _, _, _, _, _ -> },
+        onCancel = {},
+    )
 }
 
 @Preview(
@@ -376,13 +371,11 @@ private fun PreviewImageEditScreenCropPanel() {
 )
 @Composable
 private fun PreviewImageEditScreenAdjustPanel() {
-    SpoonTheme {
-        ImageEditScreen(
-            bitmap = createPreviewBitmap(),
-            aspectRatioX = null,
-            aspectRatioY = null,
-            onConfirm = { _, _, _, _, _ -> },
-            onCancel = {},
-        )
-    }
+    ImageEditScreen(
+        bitmap = createPreviewBitmap(),
+        aspectRatioX = null,
+        aspectRatioY = null,
+        onConfirm = { _, _, _, _, _ -> },
+        onCancel = {},
+    )
 }

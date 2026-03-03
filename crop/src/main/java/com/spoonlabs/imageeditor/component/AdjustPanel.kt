@@ -16,8 +16,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.spoonlabs.imageeditor.ImageEditorTheme
 import com.spoonlabs.imageeditor.R
-import net.spooncast.designsystem.foundation.theme.SpoonTheme
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -28,9 +28,9 @@ fun AdjustPanel(
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val brandColor = SpoonTheme.colors.fillBrandDefault
-    val iconColor = SpoonTheme.colors.iconFixedWhite
-    val textColor = SpoonTheme.colors.textFixedWhite
+    val brandColor = ImageEditorTheme.primary
+    val iconColor = ImageEditorTheme.onSurface
+    val textColor = ImageEditorTheme.onSurface
 
     Column(
         modifier = modifier
