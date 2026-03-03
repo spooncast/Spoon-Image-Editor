@@ -5,7 +5,7 @@ import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-data class CropConfig(
+data class ImageEditConfig(
     val sourceUri: Uri,
     val outputUri: Uri,
     val aspectRatioX: Float? = null,

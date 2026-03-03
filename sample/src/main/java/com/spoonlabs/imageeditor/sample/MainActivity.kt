@@ -39,9 +39,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.spoonlabs.imageeditor.CropConfig
-import com.spoonlabs.imageeditor.CropContract
-import com.spoonlabs.imageeditor.CropResult
+import com.spoonlabs.imageeditor.ImageEditConfig
+import com.spoonlabs.imageeditor.ImageEditContract
+import com.spoonlabs.imageeditor.ImageEditResult
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -64,14 +64,14 @@ private fun SampleScreen() {
     var editedUri by remember { mutableStateOf<Uri?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val cropLauncher = rememberLauncherForActivityResult(CropContract()) { result ->
+    val cropLauncher = rememberLauncherForActivityResult(ImageEditContract()) { result ->
         when (result) {
-            is CropResult.Success -> {
+            is ImageEditResult.Success -> {
                 editedUri = result.outputUri
                 errorMessage = null
             }
-            is CropResult.Error -> errorMessage = result.message
-            is CropResult.Cancelled -> Unit
+            is ImageEditResult.Error -> errorMessage = result.message
+            is ImageEditResult.Cancelled -> Unit
         }
     }
 
@@ -79,7 +79,7 @@ private fun SampleScreen() {
         val outputDir = File(context.filesDir, "crop_output").also { it.mkdirs() }
         val outputFile = File(outputDir, "edited_${System.currentTimeMillis()}.jpg")
         cropLauncher.launch(
-            CropConfig(
+            ImageEditConfig(
                 sourceUri = uri,
                 outputUri = Uri.fromFile(outputFile),
             ),

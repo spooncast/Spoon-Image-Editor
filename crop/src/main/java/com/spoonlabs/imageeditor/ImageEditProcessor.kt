@@ -14,7 +14,7 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-object CropImageProcessor {
+object ImageEditProcessor {
 
     private const val MAX_BITMAP_SIZE = 4096
     private const val JPEG_QUALITY = 90

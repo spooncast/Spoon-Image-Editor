@@ -18,7 +18,7 @@ import kotlinx.coroutines.withContext
 import net.spooncast.designsystem.foundation.color.darkColors
 import net.spooncast.designsystem.foundation.theme.SpoonTheme
 
-class CropActivity : ComponentActivity() {
+class ImageEditActivity : ComponentActivity() {
 
     private var sourceBitmap: Bitmap? = null
 
@@ -34,13 +34,13 @@ class CropActivity : ComponentActivity() {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
 
-        val config = intent.getParcelableExtra<CropConfig>(EXTRA_CROP_CONFIG)
+        val config = intent.getParcelableExtra<ImageEditConfig>(EXTRA_CONFIG)
         if (config == null) {
             finishWithError("No crop configuration provided")
             return
         }
 
-        val bitmap = CropImageProcessor.loadBitmap(this, config.sourceUri)
+        val bitmap = ImageEditProcessor.loadBitmap(this, config.sourceUri)
         if (bitmap == null) {
             finishWithError("Failed to load image")
             return
@@ -49,15 +49,15 @@ class CropActivity : ComponentActivity() {
 
         setContent {
             SpoonTheme(colors = darkColors) {
-                CropScreen(
+                ImageEditScreen(
                     bitmap = bitmap,
                     aspectRatioX = config.aspectRatioX,
                     aspectRatioY = config.aspectRatioY,
                     onConfirm = { cropRect, rotationDegrees, brightness, flipH, flipV ->
                         lifecycleScope.launch {
                             val result = withContext(Dispatchers.IO) {
-                                CropImageProcessor.cropAndSave(
-                                    context = this@CropActivity,
+                                ImageEditProcessor.cropAndSave(
+                                    context = this@ImageEditActivity,
                                     sourceBitmap = bitmap,
                                     cropRect = cropRect,
                                     rotationDegrees = rotationDegrees,
@@ -102,9 +102,9 @@ class CropActivity : ComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_CROP_CONFIG = "crop_config"
-        const val EXTRA_OUTPUT_URI = "crop_output_uri"
-        const val EXTRA_ERROR_MESSAGE = "crop_error"
+        const val EXTRA_CONFIG = "image_edit_config"
+        const val EXTRA_OUTPUT_URI = "image_edit_output_uri"
+        const val EXTRA_ERROR_MESSAGE = "image_edit_error"
         const val RESULT_ERROR = Activity.RESULT_FIRST_USER
     }
 }

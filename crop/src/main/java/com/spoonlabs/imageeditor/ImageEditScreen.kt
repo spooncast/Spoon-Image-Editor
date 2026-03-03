@@ -59,7 +59,7 @@ private enum class ActivePanel {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CropScreen(
+internal fun ImageEditScreen(
     bitmap: Bitmap,
     aspectRatioX: Float?,
     aspectRatioY: Float?,
@@ -333,9 +333,9 @@ private fun createPreviewBitmap(): Bitmap {
     showSystemUi = true,
 )
 @Composable
-private fun PreviewCropScreenDefault() {
+private fun PreviewImageEditScreenDefault() {
     SpoonTheme {
-        CropScreen(
+        ImageEditScreen(
             bitmap = createPreviewBitmap(),
             aspectRatioX = null,
             aspectRatioY = null,
@@ -354,9 +354,9 @@ private fun PreviewCropScreenDefault() {
     showSystemUi = true,
 )
 @Composable
-private fun PreviewCropScreenCropPanel() {
+private fun PreviewImageEditScreenCropPanel() {
     SpoonTheme {
-        CropScreen(
+        ImageEditScreen(
             bitmap = createPreviewBitmap(),
             aspectRatioX = null,
             aspectRatioY = null,
@@ -375,9 +375,9 @@ private fun PreviewCropScreenCropPanel() {
     showSystemUi = true,
 )
 @Composable
-private fun PreviewCropScreenAdjustPanel() {
+private fun PreviewImageEditScreenAdjustPanel() {
     SpoonTheme {
-        CropScreen(
+        ImageEditScreen(
             bitmap = createPreviewBitmap(),
             aspectRatioX = null,
             aspectRatioY = null,
