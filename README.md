@@ -32,10 +32,8 @@ dependencies {
 ## Usage
 
 ```kotlin
-CropScreen(
+ImageEditScreen(
     bitmap = yourBitmap,
-    aspectRatioX = null,  // null = 원본 비율
-    aspectRatioY = null,
     onConfirm = { cropRect, rotation, brightness, flipH, flipV ->
         // 편집 결과 처리
     },
