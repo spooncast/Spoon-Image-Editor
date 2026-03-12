@@ -21,24 +21,28 @@ object ImageEditProcessor {
     private const val JPEG_QUALITY = 90
 
     fun loadBitmap(context: Context, uri: Uri): Bitmap? {
-        val resolver = context.contentResolver
-        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+        return try {
+            val resolver = context.contentResolver
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
 
-        val width = options.outWidth
-        val height = options.outHeight
-        if (width <= 0 || height <= 0) return null
+            val width = options.outWidth
+            val height = options.outHeight
+            if (width <= 0 || height <= 0) return null
 
-        var inSampleSize = 1
-        while (width / inSampleSize > MAX_BITMAP_SIZE || height / inSampleSize > MAX_BITMAP_SIZE) {
-            inSampleSize *= 2
-        }
+            var inSampleSize = 1
+            while (width / inSampleSize > MAX_BITMAP_SIZE || height / inSampleSize > MAX_BITMAP_SIZE) {
+                inSampleSize *= 2
+            }
 
-        val decodeOptions = BitmapFactory.Options().apply {
-            this.inSampleSize = inSampleSize
-        }
-        return resolver.openInputStream(uri)?.use {
-            BitmapFactory.decodeStream(it, null, decodeOptions)
+            val decodeOptions = BitmapFactory.Options().apply {
+                this.inSampleSize = inSampleSize
+            }
+            resolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, decodeOptions)
+            }
+        } catch (_: Exception) {
+            null
         }
     }
 

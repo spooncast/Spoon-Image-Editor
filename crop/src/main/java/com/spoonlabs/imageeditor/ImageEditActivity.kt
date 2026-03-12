@@ -1,8 +1,6 @@
 package com.spoonlabs.imageeditor
 
-import android.app.Activity
 import android.content.Intent
-import android.graphics.Bitmap
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -17,8 +15,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class ImageEditActivity : ComponentActivity() {
-
-    private var sourceBitmap: Bitmap? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -43,8 +39,6 @@ class ImageEditActivity : ComponentActivity() {
             finishWithError("Failed to load image")
             return
         }
-        sourceBitmap = bitmap
-
         setContent {
             ImageEditScreen(
                     bitmap = bitmap,
@@ -79,12 +73,6 @@ class ImageEditActivity : ComponentActivity() {
                     },
                 )
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        sourceBitmap?.recycle()
-        sourceBitmap = null
     }
 
     private fun finishWithError(message: String) {
