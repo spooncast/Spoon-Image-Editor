@@ -80,6 +80,7 @@ fun CropArea(
     onCropStateChanged: ((getCropRect: () -> RectF) -> Unit)? = null,
     onImageTap: (() -> Unit)? = null,
 ) {
+    if (bitmap.isRecycled) return
     val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
     val bmpW = bitmap.width.toFloat()
     val bmpH = bitmap.height.toFloat()
@@ -255,13 +256,15 @@ fun CropArea(
                 )
             }
         }) {
-            val imgOffsetX = (effectiveWidth - bitmap.width) / 2f
-            val imgOffsetY = (effectiveHeight - bitmap.height) / 2f
-            drawImage(
-                image = imageBitmap,
-                topLeft = Offset(imgOffsetX, imgOffsetY),
-                colorFilter = brightnessFilter,
-            )
+            if (!bitmap.isRecycled) {
+                val imgOffsetX = (effectiveWidth - bitmap.width) / 2f
+                val imgOffsetY = (effectiveHeight - bitmap.height) / 2f
+                drawImage(
+                    image = imageBitmap,
+                    topLeft = Offset(imgOffsetX, imgOffsetY),
+                    colorFilter = brightnessFilter,
+                )
+            }
         }
 
         if (showCropOverlay) {

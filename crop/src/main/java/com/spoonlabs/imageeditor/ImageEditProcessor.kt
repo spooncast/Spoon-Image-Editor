@@ -43,6 +43,8 @@ object ImageEditProcessor {
             }
         } catch (_: Exception) {
             null
+        } catch (_: OutOfMemoryError) {
+            null
         }
     }
 
@@ -55,7 +57,27 @@ object ImageEditProcessor {
         flipHorizontal: Boolean = false,
         flipVertical: Boolean = false,
         outputUri: Uri,
-    ): Result<Uri> = runCatching {
+    ): Result<Uri> = try {
+        Result.success(cropAndSaveInternal(
+            context, sourceBitmap, cropRect, rotationDegrees,
+            brightness, flipHorizontal, flipVertical, outputUri,
+        ))
+    } catch (e: Exception) {
+        Result.failure(e)
+    } catch (e: OutOfMemoryError) {
+        Result.failure(RuntimeException("Out of memory while processing image", e))
+    }
+
+    private fun cropAndSaveInternal(
+        context: Context,
+        sourceBitmap: Bitmap,
+        cropRect: RectF,
+        rotationDegrees: Float,
+        brightness: Float,
+        flipHorizontal: Boolean,
+        flipVertical: Boolean,
+        outputUri: Uri,
+    ): Uri {
         val radians = Math.toRadians(rotationDegrees.toDouble())
         val cosA = abs(cos(radians)).toFloat()
         val sinA = abs(sin(radians)).toFloat()
@@ -91,7 +113,12 @@ object ImageEditProcessor {
             val w = cropRect.width().toInt().coerceIn(1, rotatedBitmap.width - x)
             val h = cropRect.height().toInt().coerceIn(1, rotatedBitmap.height - y)
 
+            // Bitmap.createBitmap()은 crop이 전체 이미지와 일치하면 같은 reference를 반환할 수 있음.
+            // sourceBitmap은 Compose UI에서 사용 중이므로 반드시 별도 bitmap으로 분리해야 함.
             var currentResult = Bitmap.createBitmap(rotatedBitmap, x, y, w, h)
+            if (currentResult === sourceBitmap) {
+                currentResult = sourceBitmap.copy(sourceBitmap.config ?: Bitmap.Config.ARGB_8888, true)
+            }
             resultBitmap = currentResult
 
             if (flipHorizontal || flipVertical) {
@@ -145,7 +172,7 @@ object ImageEditProcessor {
             outputUri
         } finally {
             resultBitmap?.recycle()
-            if (rotatedBitmap !== sourceBitmap) {
+            if (rotatedBitmap !== sourceBitmap && rotatedBitmap !== resultBitmap) {
                 rotatedBitmap?.recycle()
             }
         }

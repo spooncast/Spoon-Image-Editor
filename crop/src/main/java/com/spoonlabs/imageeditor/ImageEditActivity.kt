@@ -1,11 +1,15 @@
 package com.spoonlabs.imageeditor
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -15,6 +19,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class ImageEditActivity : ComponentActivity() {
+
+    private var loadedBitmap by mutableStateOf<Bitmap?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -34,15 +40,12 @@ class ImageEditActivity : ComponentActivity() {
             return
         }
 
-        val bitmap = ImageEditProcessor.loadBitmap(this, config.sourceUri)
-        if (bitmap == null) {
-            finishWithError("Failed to load image")
-            return
-        }
         setContent {
-            ImageEditScreen(
+            val bitmap = loadedBitmap
+            if (bitmap != null) {
+                ImageEditScreen(
                     bitmap = bitmap,
-                onConfirm = { cropRect, rotationDegrees, brightness, flipH, flipV ->
+                    onConfirm = { cropRect, rotationDegrees, brightness, flipH, flipV ->
                         lifecycleScope.launch {
                             val result = withContext(Dispatchers.IO) {
                                 ImageEditProcessor.cropAndSave(
@@ -72,6 +75,20 @@ class ImageEditActivity : ComponentActivity() {
                         finish()
                     },
                 )
+            }
+        }
+
+        if (loadedBitmap == null) {
+            lifecycleScope.launch {
+                val bitmap = withContext(Dispatchers.IO) {
+                    ImageEditProcessor.loadBitmap(this@ImageEditActivity, config.sourceUri)
+                }
+                if (bitmap == null) {
+                    finishWithError("Failed to load image")
+                } else {
+                    loadedBitmap = bitmap
+                }
+            }
         }
     }
 
