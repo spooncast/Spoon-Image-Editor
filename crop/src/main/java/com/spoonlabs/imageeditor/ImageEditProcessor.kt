@@ -169,7 +169,7 @@ object ImageEditProcessor {
                 currentResult.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, os)
             } ?: throw IllegalArgumentException("Cannot open output URI: $outputUri")
 
-            outputUri
+            return outputUri
         } finally {
             resultBitmap?.recycle()
             if (rotatedBitmap !== sourceBitmap && rotatedBitmap !== resultBitmap) {
