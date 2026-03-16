@@ -79,9 +79,10 @@ fun TickSlider(
                 .height(64.dp)
                 .padding(horizontal = 10.dp),
         ) {
+            if (tickConfig.tickCount < 2) return@Canvas
             val spacing = size.width / (tickConfig.tickCount - 1)
             val centerY = size.height / 2f
-            val halfCount = tickConfig.tickCount / 2f
+            val halfCount = (tickConfig.tickCount / 2f).coerceAtLeast(1f)
 
             for (i in 0 until tickConfig.tickCount) {
                 val isCenter = i == tickConfig.centerIndex

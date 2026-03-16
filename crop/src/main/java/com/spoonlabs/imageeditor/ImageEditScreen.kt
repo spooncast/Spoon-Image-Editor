@@ -62,12 +62,16 @@ private enum class ActivePanel {
 
 private val ActivePanelSaver = Saver<ActivePanel, String>(
     save = { it.name },
-    restore = { ActivePanel.valueOf(it) },
+    restore = {
+        try { ActivePanel.valueOf(it) } catch (_: Exception) { ActivePanel.NONE }
+    },
 )
 
 private val AspectRatioSaver = Saver<AspectRatio, String>(
     save = { it.name },
-    restore = { AspectRatio.valueOf(it) },
+    restore = {
+        try { AspectRatio.valueOf(it) } catch (_: Exception) { AspectRatio.ORIGINAL }
+    },
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -97,14 +101,17 @@ internal fun ImageEditScreen(
     var flipHorizontal by rememberSaveable { mutableStateOf(false) }
     var flipVertical by rememberSaveable { mutableStateOf(false) }
 
-    val is90or270 = ((rotation90 / 90f).toInt() % 2) != 0
+    val safeRotation = if (rotation90.isFinite()) rotation90 else 0f
+    val is90or270 = ((safeRotation / 90f).toInt() % 2) != 0
+    val bitmapWidth = if (!bitmap.isRecycled) bitmap.width.toFloat() else 1f
+    val bitmapHeight = if (!bitmap.isRecycled) bitmap.height.toFloat() else 1f
     val effectiveRatioX: Float? = if (selectedAspectRatio == AspectRatio.ORIGINAL) {
-        if (is90or270) bitmap.height.toFloat() else bitmap.width.toFloat()
+        if (is90or270) bitmapHeight else bitmapWidth
     } else {
         selectedAspectRatio.x(isLandscape)
     }
     val effectiveRatioY: Float? = if (selectedAspectRatio == AspectRatio.ORIGINAL) {
-        if (is90or270) bitmap.width.toFloat() else bitmap.height.toFloat()
+        if (is90or270) bitmapWidth else bitmapHeight
     } else {
         selectedAspectRatio.y(isLandscape)
     }
@@ -140,8 +147,8 @@ internal fun ImageEditScreen(
                 topInset = topBarHeight,
                 bottomInset = if (activePanel != ActivePanel.NONE) bottomControlsHeight else 0f,
                 showCropOverlay = activePanel != ActivePanel.ADJUST,
-                fitImageWidth = if (is90or270) bitmap.height.toFloat() else 0f,
-                fitImageHeight = if (is90or270) bitmap.width.toFloat() else 0f,
+                fitImageWidth = if (is90or270) bitmapHeight else 0f,
+                fitImageHeight = if (is90or270) bitmapWidth else 0f,
                 modifier = Modifier.fillMaxSize(),
                 onCropStateChanged = { provider -> getCropRect = provider },
                 onImageTap = {

@@ -53,12 +53,16 @@ private fun computeEffectiveSize(
     bitmapHeight: Float,
     rotationDegrees: Float,
 ): Pair<Float, Float> {
-    val radians = Math.toRadians(rotationDegrees.toDouble())
+    if (bitmapWidth <= 0f || bitmapHeight <= 0f) return Pair(1f, 1f)
+    val safeRotation = if (rotationDegrees.isFinite()) rotationDegrees else 0f
+    val radians = Math.toRadians(safeRotation.toDouble())
     val cosA = abs(cos(radians)).toFloat()
     val sinA = abs(sin(radians)).toFloat()
+    val w = bitmapWidth * cosA + bitmapHeight * sinA
+    val h = bitmapWidth * sinA + bitmapHeight * cosA
     return Pair(
-        bitmapWidth * cosA + bitmapHeight * sinA,
-        bitmapWidth * sinA + bitmapHeight * cosA,
+        if (w.isFinite() && w > 0f) w else 1f,
+        if (h.isFinite() && h > 0f) h else 1f,
     )
 }
 
@@ -81,9 +85,24 @@ fun CropArea(
     onImageTap: (() -> Unit)? = null,
 ) {
     if (bitmap.isRecycled) return
-    val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
-    val bmpW = bitmap.width.toFloat()
-    val bmpH = bitmap.height.toFloat()
+    val bmpW: Float
+    val bmpH: Float
+    try {
+        bmpW = bitmap.width.toFloat()
+        bmpH = bitmap.height.toFloat()
+    } catch (_: Throwable) {
+        return // bitmap이 접근 중 recycle된 경우
+    }
+    if (bmpW <= 0f || bmpH <= 0f) return
+
+    val imageBitmap = remember(bitmap) {
+        try {
+            bitmap.asImageBitmap()
+        } catch (_: Throwable) {
+            null
+        }
+    } ?: return
+
     val fitW = if (fitImageWidth > 0f) fitImageWidth else bmpW
     val fitH = if (fitImageHeight > 0f) fitImageHeight else bmpH
 
@@ -107,8 +126,8 @@ fun CropArea(
             aspectRatioY,
             fitW,
             fitH,
-            topInset,
-            bottomInset,
+            topInset.coerceAtLeast(0f),
+            bottomInset.coerceAtLeast(0f),
         )
     }
 
@@ -120,14 +139,17 @@ fun CropArea(
         ).coerceIn(0.001f, 100f)
     }
 
-    val renderScale = baseScale * transform.gestureZoom
+    val renderScale = (baseScale * transform.gestureZoom).let {
+        if (it.isFinite() && it > 0f) it else 1f
+    }
 
     fun centerImage(zoom: Float = transform.gestureZoom) {
-        val scale = baseScale * zoom
+        val safeZoom = if (zoom.isFinite() && zoom > 0f) zoom else 1f
+        val scale = baseScale * safeZoom
         val imgW = effectiveWidth * scale
         val imgH = effectiveHeight * scale
         transform = transform.copy(
-            gestureZoom = zoom,
+            gestureZoom = safeZoom,
             offsetX = cropRect.center.x - imgW / 2f,
             offsetY = cropRect.center.y - imgH / 2f,
         )
@@ -161,9 +183,10 @@ fun CropArea(
     }
 
     val brightnessFilter = remember(brightness) {
-        if (brightness == 0f) null
+        val safeBrightness = if (brightness.isFinite()) brightness else 0f
+        if (safeBrightness == 0f) null
         else {
-            val clampedBrightness = brightness.coerceIn(-1f, 1f)
+            val clampedBrightness = safeBrightness.coerceIn(-1f, 1f)
             val scale = 1f + clampedBrightness * 0.2f
             val offset = clampedBrightness * 80f
             val matrix = ColorMatrix().apply {
@@ -193,8 +216,8 @@ fun CropArea(
                 offsetX = transform.offsetX,
                 offsetY = transform.offsetY,
                 scale = renderScale,
-                bitmapWidth = bitmap.width,
-                bitmapHeight = bitmap.height,
+                bitmapWidth = if (!bitmap.isRecycled) bitmap.width else bmpW.toInt(),
+                bitmapHeight = if (!bitmap.isRecycled) bitmap.height else bmpH.toInt(),
                 rotationDegrees = rotationDegrees,
                 flipHorizontal = flipHorizontal,
                 flipVertical = flipVertical,
@@ -217,16 +240,20 @@ fun CropArea(
 
                     val curBaseScale = if (fitW <= 0f || fitH <= 0f) 1f
                     else max(cropRect.width / fitW, cropRect.height / fitH)
+                        .let { if (it.isFinite() && it > 0f) it else 1f }
 
                     val (curEffW, curEffH) = computeEffectiveSize(bmpW, bmpH, rotationDegrees)
 
                     val oldScale = curBaseScale * currentTransform.gestureZoom
-                    if (oldScale <= 0f) return@detectTransformGestures
+                    if (!oldScale.isFinite() || oldScale <= 0f) return@detectTransformGestures
                     val newGestureZoom = (currentTransform.gestureZoom * zoom).coerceIn(1f, MAX_GESTURE_ZOOM)
                     val newScale = curBaseScale * newGestureZoom
 
-                    val newOffsetX = centroid.x - (centroid.x - currentTransform.offsetX) * (newScale / oldScale) + pan.x
-                    val newOffsetY = centroid.y - (centroid.y - currentTransform.offsetY) * (newScale / oldScale) + pan.y
+                    val ratio = newScale / oldScale
+                    if (!ratio.isFinite()) return@detectTransformGestures
+
+                    val newOffsetX = centroid.x - (centroid.x - currentTransform.offsetX) * ratio + pan.x
+                    val newOffsetY = centroid.y - (centroid.y - currentTransform.offsetY) * ratio + pan.y
 
                     val imgW = curEffW * newScale
                     val imgH = curEffH * newScale
@@ -239,7 +266,9 @@ fun CropArea(
                 }
             }
     ) {
-        val currentRenderScale = baseScale * transform.gestureZoom
+        val currentRenderScale = (baseScale * transform.gestureZoom).let {
+            if (it.isFinite() && it > 0f) it else 1f
+        }
 
         withTransform({
             translate(left = transform.offsetX, top = transform.offsetY)
@@ -257,13 +286,17 @@ fun CropArea(
             }
         }) {
             if (!bitmap.isRecycled) {
-                val imgOffsetX = (effectiveWidth - bitmap.width) / 2f
-                val imgOffsetY = (effectiveHeight - bitmap.height) / 2f
-                drawImage(
-                    image = imageBitmap,
-                    topLeft = Offset(imgOffsetX, imgOffsetY),
-                    colorFilter = brightnessFilter,
-                )
+                try {
+                    val imgOffsetX = (effectiveWidth - bmpW) / 2f
+                    val imgOffsetY = (effectiveHeight - bmpH) / 2f
+                    drawImage(
+                        image = imageBitmap,
+                        topLeft = Offset(imgOffsetX, imgOffsetY),
+                        colorFilter = brightnessFilter,
+                    )
+                } catch (_: Throwable) {
+                    // bitmap이 isRecycled 체크와 draw 사이에 recycle될 수 있음 (race condition)
+                }
             }
         }
 
@@ -282,18 +315,23 @@ private fun calculateCropRect(
     topInset: Float = 0f,
     bottomInset: Float = 0f,
 ): Rect {
+    if (canvasSize.width <= 0f || canvasSize.height <= 0f) return Rect.Zero
+
     val paddingH = 16f
-    val paddingTop = 16f + topInset
-    val paddingBottom = 16f + bottomInset
-    val availableWidth = canvasSize.width - paddingH * 2
-    val availableHeight = canvasSize.height - paddingTop - paddingBottom
+    val paddingTop = 16f + topInset.coerceAtLeast(0f)
+    val paddingBottom = 16f + bottomInset.coerceAtLeast(0f)
+    val availableWidth = (canvasSize.width - paddingH * 2).coerceAtLeast(1f)
+    val availableHeight = (canvasSize.height - paddingTop - paddingBottom).coerceAtLeast(1f)
 
     val cropWidth: Float
     val cropHeight: Float
 
-    if (aspectRatioX != null && aspectRatioY != null && aspectRatioY > 0f) {
+    if (aspectRatioX != null && aspectRatioY != null && aspectRatioY > 0f && aspectRatioX > 0f) {
         val ratio = aspectRatioX / aspectRatioY
-        if (availableWidth / availableHeight > ratio) {
+        if (!ratio.isFinite() || ratio <= 0f) {
+            cropWidth = availableWidth
+            cropHeight = availableHeight
+        } else if (availableWidth / availableHeight > ratio) {
             cropHeight = availableHeight
             cropWidth = cropHeight * ratio
         } else {
@@ -301,12 +339,14 @@ private fun calculateCropRect(
             cropHeight = cropWidth / ratio
         }
     } else {
+        val safeImageWidth = if (imageWidth > 0f) imageWidth else 1f
+        val safeImageHeight = if (imageHeight > 0f) imageHeight else 1f
         val fitScale = min(
-            availableWidth / imageWidth,
-            availableHeight / imageHeight,
-        )
-        cropWidth = imageWidth * fitScale
-        cropHeight = imageHeight * fitScale
+            availableWidth / safeImageWidth,
+            availableHeight / safeImageHeight,
+        ).let { if (it.isFinite() && it > 0f) it else 1f }
+        cropWidth = safeImageWidth * fitScale
+        cropHeight = safeImageHeight * fitScale
     }
 
     val left = (canvasSize.width - cropWidth) / 2f
@@ -320,7 +360,9 @@ private fun clampOffset(
     cropStart: Float,
     cropEnd: Float,
 ): Float {
+    if (!offset.isFinite()) return cropStart
     val cropSize = cropEnd - cropStart
+    if (!imageSize.isFinite() || imageSize <= 0f) return cropStart
     return if (imageSize <= cropSize) {
         cropStart + (cropSize - imageSize) / 2f
     } else {
@@ -341,18 +383,17 @@ private fun computeSourceCropRect(
     flipHorizontal: Boolean = false,
     flipVertical: Boolean = false,
 ): RectF {
-    if (scale <= 0f) return RectF(0f, 0f, bitmapWidth.toFloat(), bitmapHeight.toFloat())
-
     val bmpW = bitmapWidth.toFloat()
     val bmpH = bitmapHeight.toFloat()
+    if (bmpW <= 0f || bmpH <= 0f) return RectF(0f, 0f, bmpW.coerceAtLeast(1f), bmpH.coerceAtLeast(1f))
+    if (!scale.isFinite() || scale <= 0f) return RectF(0f, 0f, bmpW, bmpH)
+
     val radians = Math.toRadians(rotationDegrees.toDouble())
     val cosA = abs(cos(radians)).toFloat()
     val sinA = abs(sin(radians)).toFloat()
-    val effectiveWidth = bmpW * cosA + bmpH * sinA
-    val effectiveHeight = bmpW * sinA + bmpH * cosA
+    val effectiveWidth = (bmpW * cosA + bmpH * sinA).let { if (it.isFinite() && it > 0f) it else 1f }
+    val effectiveHeight = (bmpW * sinA + bmpH * cosA).let { if (it.isFinite() && it > 0f) it else 1f }
 
-    // Screen crop rect → effective (rotated+flipped) space
-    // After undoing translate and scale, coordinates are in R * F * local space
     val effLeft = (cropRect.left - offsetX) / scale
     val effTop = (cropRect.top - offsetY) / scale
     val effRight = (cropRect.right - offsetX) / scale
@@ -367,9 +408,6 @@ private fun computeSourceCropRect(
         )
     }
 
-    // Convert from visual (R * F * local) space to rotated bitmap (R * local) space.
-    // Formula: rotatedPos = R * F^-1 * R^-1 * effPos
-    // All transforms share pivot (cx, cy).
     val cx = effectiveWidth / 2f
     val cy = effectiveHeight / 2f
     val cosR = cos(radians).toFloat()
@@ -378,13 +416,10 @@ private fun computeSourceCropRect(
     fun transformPoint(x: Float, y: Float): Pair<Float, Float> {
         var px = x - cx
         var py = y - cy
-        // Undo rotation (R^-1)
         var tx = px * cosR - py * sinR
         var ty = px * sinR + py * cosR
-        // Undo flip (self-inverse)
         if (flipHorizontal) tx = -tx
         if (flipVertical) ty = -ty
-        // Re-apply rotation
         px = tx * cosR + ty * sinR
         py = -tx * sinR + ty * cosR
         return Pair(px + cx, py + cy)

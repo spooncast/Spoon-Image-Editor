@@ -15,7 +15,8 @@ private const val BORDER_STROKE_WIDTH = 2.5f
 private const val BORDER_OUTLINE_WIDTH = BORDER_STROKE_WIDTH + 2f
 
 fun DrawScope.drawCropOverlay(cropRect: Rect) {
-    if (cropRect.width <= 0f || cropRect.height <= 0f) return
+    if (cropRect.width <= 0f || cropRect.height <= 0f || cropRect == Rect.Zero) return
+    if (size.width <= 0f || size.height <= 0f) return
 
     drawRect(
         color = DIM_COLOR,

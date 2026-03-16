@@ -3,6 +3,7 @@ package com.spoonlabs.imageeditor
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -23,18 +24,32 @@ class ImageEditActivity : ComponentActivity() {
     private var loadedBitmap by mutableStateOf<Bitmap?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK),
-        )
+        try {
+            enableEdgeToEdge(
+                statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+                navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK),
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "enableEdgeToEdge failed", e)
+        }
         super.onCreate(savedInstanceState)
 
-        WindowCompat.getInsetsController(window, window.decorView)?.apply {
-            hide(WindowInsetsCompat.Type.statusBars())
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        try {
+            WindowCompat.getInsetsController(window, window.decorView)?.apply {
+                hide(WindowInsetsCompat.Type.statusBars())
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "WindowInsetsController setup failed", e)
         }
 
-        val config = intent.getParcelableExtra<ImageEditConfig>(EXTRA_CONFIG)
+        val config = try {
+            @Suppress("DEPRECATION")
+            intent?.getParcelableExtra<ImageEditConfig>(EXTRA_CONFIG)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to parse config", e)
+            null
+        }
         if (config == null) {
             finishWithError("No crop configuration provided")
             return
@@ -42,7 +57,7 @@ class ImageEditActivity : ComponentActivity() {
 
         setContent {
             val bitmap = loadedBitmap
-            if (bitmap != null) {
+            if (bitmap != null && !bitmap.isRecycled) {
                 ImageEditScreen(
                     bitmap = bitmap,
                     onConfirm = { cropRect, rotationDegrees, brightness, flipH, flipV ->
@@ -59,6 +74,7 @@ class ImageEditActivity : ComponentActivity() {
                                     outputUri = config.outputUri,
                                 )
                             }
+                            if (isFinishing || isDestroyed) return@launch
                             result.onSuccess { uri ->
                                 setResult(
                                     RESULT_OK,
@@ -83,6 +99,10 @@ class ImageEditActivity : ComponentActivity() {
                 val bitmap = withContext(Dispatchers.IO) {
                     ImageEditProcessor.loadBitmap(this@ImageEditActivity, config.sourceUri)
                 }
+                if (isFinishing || isDestroyed) {
+                    bitmap?.recycle()
+                    return@launch
+                }
                 if (bitmap == null) {
                     finishWithError("Failed to load image")
                 } else {
@@ -101,6 +121,7 @@ class ImageEditActivity : ComponentActivity() {
     }
 
     companion object {
+        private const val TAG = "ImageEditActivity"
         const val EXTRA_CONFIG = "image_edit_config"
         const val EXTRA_OUTPUT_URI = "image_edit_output_uri"
         const val EXTRA_ERROR_MESSAGE = "image_edit_error"
