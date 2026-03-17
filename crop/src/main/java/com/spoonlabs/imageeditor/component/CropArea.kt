@@ -80,6 +80,8 @@ fun CropArea(
     showCropOverlay: Boolean = true,
     fitImageWidth: Float = 0f,
     fitImageHeight: Float = 0f,
+    externalZoom: Float = 1f,
+    onZoomChanged: ((Float) -> Unit)? = null,
     modifier: Modifier = Modifier,
     onCropStateChanged: ((getCropRect: () -> RectF) -> Unit)? = null,
     onImageTap: (() -> Unit)? = null,
@@ -111,6 +113,7 @@ fun CropArea(
 
     var lastRotation by remember { mutableFloatStateOf(rotationDegrees) }
     var lastAspectKey by remember { mutableStateOf("${aspectRatioX}_${aspectRatioY}") }
+    var lastExternalZoom by remember { mutableFloatStateOf(externalZoom) }
     var initialized by remember { mutableStateOf(false) }
     var lastCropRect by remember { mutableStateOf(Rect.Zero) }
 
@@ -143,7 +146,7 @@ fun CropArea(
         if (it.isFinite() && it > 0f) it else 1f
     }
 
-    fun centerImage(zoom: Float = transform.gestureZoom) {
+    fun centerImage(zoom: Float = transform.gestureZoom, notifyZoomChange: Boolean = true) {
         val safeZoom = if (zoom.isFinite() && zoom > 0f) zoom else 1f
         val scale = baseScale * safeZoom
         val imgW = effectiveWidth * scale
@@ -153,6 +156,10 @@ fun CropArea(
             offsetX = cropRect.center.x - imgW / 2f,
             offsetY = cropRect.center.y - imgH / 2f,
         )
+        if (notifyZoomChange) {
+            lastExternalZoom = safeZoom
+            onZoomChanged?.invoke(safeZoom)
+        }
     }
 
     if (!initialized && cropRect != Rect.Zero) {
@@ -180,6 +187,12 @@ fun CropArea(
     if (lastAspectKey != currentAspectKey && canvasSize != IntSize.Zero) {
         lastAspectKey = currentAspectKey
         centerImage(zoom = 1f)
+    }
+
+    // 외부 슬라이더에서 zoom 변경 시 center-anchored zoom 적용
+    if (externalZoom != lastExternalZoom) {
+        lastExternalZoom = externalZoom
+        centerImage(zoom = externalZoom, notifyZoomChange = false)
     }
 
     val brightnessFilter = remember(brightness) {
@@ -263,6 +276,8 @@ fun CropArea(
                         offsetX = clampOffset(newOffsetX, imgW, cropRect.left, cropRect.right),
                         offsetY = clampOffset(newOffsetY, imgH, cropRect.top, cropRect.bottom),
                     )
+                    lastExternalZoom = newGestureZoom
+                    onZoomChanged?.invoke(newGestureZoom)
                 }
             }
     ) {

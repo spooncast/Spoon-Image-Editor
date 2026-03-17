@@ -67,7 +67,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "com.spoonlabs"
             artifactId = "imageeditor"
-            version = "0.5.0"
+            version = "0.6.0"
 
             afterEvaluate {
                 from(components["release"])

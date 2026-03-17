@@ -2,4 +2,12 @@
 <resources>
     <string name="image_editor_done">완료</string>
     <string name="image_editor_original">원본</string>
+    <string name="image_editor_close">닫기</string>
+    <string name="image_editor_crop">자르기</string>
+    <string name="image_editor_rotate">회전</string>
+    <string name="image_editor_brightness">밝기</string>
+    <string name="image_editor_zoom">확대</string>
+    <string name="image_editor_flip">뒤집기</string>
+    <string name="image_editor_portrait">세로</string>
+    <string name="image_editor_landscape">가로</string>
 </resources>

@@ -38,6 +38,7 @@ data class TickConfig(
     val majorStyle: TickStyle,
     val midStyle: TickStyle,
     val minorStyle: TickStyle,
+    val fadeFactor: Float = 0.5f,
 ) {
     companion object {
         val Default = TickConfig(
@@ -50,9 +51,18 @@ data class TickConfig(
             midStyle = TickStyle(40f, Color.White.copy(alpha = 0.6f), 1.5f),
             minorStyle = TickStyle(36f, Color.White.copy(alpha = 0.5f), 1.2f),
         )
-
-        val Rotation = Default
         val Brightness = Default
+        val Zoom = TickConfig(
+            tickCount = 51,
+            centerIndex = 0,
+            isMajor = { it % 10 == 0 },
+            isMid = { it % 5 == 0 },
+            centerStyle = TickStyle(56f, Color.White.copy(alpha = 0.9f), 2.5f),
+            majorStyle = TickStyle(48f, Color.White.copy(alpha = 0.85f), 2f),
+            midStyle = TickStyle(40f, Color.White.copy(alpha = 0.7f), 1.5f),
+            minorStyle = TickStyle(36f, Color.White.copy(alpha = 0.6f), 1.2f),
+            fadeFactor = 0.15f,
+        )
     }
 }
 
@@ -97,7 +107,7 @@ fun TickSlider(
                 }
 
                 val distFromCenter = abs(i - tickConfig.centerIndex) / halfCount
-                val fadeAlpha = (1f - distFromCenter * 0.5f).coerceIn(0.15f, 1f)
+                val fadeAlpha = (1f - distFromCenter * tickConfig.fadeFactor).coerceIn(0.15f, 1f)
                 val fadedColor = style.color.copy(alpha = style.color.alpha * fadeAlpha)
 
                 val x = i * spacing

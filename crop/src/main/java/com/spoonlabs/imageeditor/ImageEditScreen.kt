@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -35,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
@@ -55,9 +57,10 @@ import com.spoonlabs.imageeditor.component.AdjustPanel
 import com.spoonlabs.imageeditor.component.AspectRatio
 import com.spoonlabs.imageeditor.component.AspectRatioSelector
 import com.spoonlabs.imageeditor.component.CropArea
+import com.spoonlabs.imageeditor.component.ZoomPanel
 
 private enum class ActivePanel {
-    NONE, CROP, ADJUST,
+    NONE, CROP, ADJUST, ZOOM,
 }
 
 private val ActivePanelSaver = Saver<ActivePanel, String>(
@@ -98,6 +101,7 @@ internal fun ImageEditScreen(
 
     var rotation90 by rememberSaveable { mutableStateOf(0f) }
     var brightness by rememberSaveable { mutableStateOf(0f) }
+    var gestureZoom by rememberSaveable { mutableFloatStateOf(1f) }
     var flipHorizontal by rememberSaveable { mutableStateOf(false) }
     var flipVertical by rememberSaveable { mutableStateOf(false) }
 
@@ -118,7 +122,6 @@ internal fun ImageEditScreen(
 
     var getCropRect by remember { mutableStateOf<(() -> RectF)?>(null) }
     var isProcessing by remember { mutableStateOf(false) }
-    var bottomControlsHeight by remember { mutableStateOf(0f) }
     var topBarHeight by remember { mutableStateOf(0f) }
 
     Column(
@@ -145,10 +148,12 @@ internal fun ImageEditScreen(
                 flipHorizontal = flipHorizontal,
                 flipVertical = flipVertical,
                 topInset = topBarHeight,
-                bottomInset = if (activePanel != ActivePanel.NONE) bottomControlsHeight else 0f,
-                showCropOverlay = activePanel != ActivePanel.ADJUST,
+                bottomInset = 0f,
+                showCropOverlay = true,
                 fitImageWidth = if (is90or270) bitmapHeight else 0f,
                 fitImageHeight = if (is90or270) bitmapWidth else 0f,
+                externalZoom = gestureZoom,
+                onZoomChanged = { gestureZoom = it },
                 modifier = Modifier.fillMaxSize(),
                 onCropStateChanged = { provider -> getCropRect = provider },
                 onImageTap = {
@@ -169,9 +174,9 @@ internal fun ImageEditScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onCancel) {
-                    Icon(Icons.Filled.Close, "Close", tint = iconColor)
+                    Icon(Icons.Filled.Close, stringResource(R.string.image_editor_close), tint = iconColor)
                 }
-                if (activePanel == ActivePanel.NONE) {
+                if (activePanel != ActivePanel.CROP) {
                     val doneEnabled = getCropRect != null && !isProcessing
                     TextButton(
                         onClick = {
@@ -202,16 +207,16 @@ internal fun ImageEditScreen(
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .onSizeChanged { bottomControlsHeight = it.height.toFloat() },
+                    .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 AnimatedContent(
                     targetState = activePanel,
                     transitionSpec = {
-                        if (targetState == ActivePanel.NONE) {
+                        val usesSlide = targetState == ActivePanel.CROP || initialState == ActivePanel.CROP
+                        if (usesSlide && targetState == ActivePanel.NONE) {
                             fadeIn() togetherWith (fadeOut() + slideOutVertically { it })
-                        } else if (initialState == ActivePanel.NONE) {
+                        } else if (usesSlide && initialState == ActivePanel.NONE) {
                             (fadeIn() + slideInVertically { it }) togetherWith fadeOut()
                         } else {
                             fadeIn() togetherWith fadeOut()
@@ -232,13 +237,13 @@ internal fun ImageEditScreen(
                         ) {
                             TabIcon(
                                 iconRes = R.drawable.ic_crop,
-                                contentDescription = "Crop",
+                                contentDescription = stringResource(R.string.image_editor_crop),
                                 isSelected = false,
                                 onClick = { activePanel = ActivePanel.CROP },
                             )
                             TabIcon(
                                 iconRes = R.drawable.ic_rotate,
-                                contentDescription = "Rotate",
+                                contentDescription = stringResource(R.string.image_editor_rotate),
                                 isSelected = false,
                                 onClick = {
                                     rotation90 = (rotation90 + 90f).mod(360f)
@@ -249,13 +254,19 @@ internal fun ImageEditScreen(
                             )
                             TabIcon(
                                 iconRes = R.drawable.ic_brightness,
-                                contentDescription = "Adjust",
+                                contentDescription = stringResource(R.string.image_editor_brightness),
                                 isSelected = false,
                                 onClick = { activePanel = ActivePanel.ADJUST },
                             )
                             TabIcon(
+                                iconRes = R.drawable.ic_zoom,
+                                contentDescription = stringResource(R.string.image_editor_zoom),
+                                isSelected = false,
+                                onClick = { activePanel = ActivePanel.ZOOM },
+                            )
+                            TabIcon(
                                 iconRes = R.drawable.ic_flip,
-                                contentDescription = "Flip",
+                                contentDescription = stringResource(R.string.image_editor_flip),
                                 isSelected = if (is90or270) flipVertical else flipHorizontal,
                                 onClick = {
                                     if (is90or270) {
@@ -266,7 +277,7 @@ internal fun ImageEditScreen(
                                 },
                             )
                         }
-                    } else {
+                    } else if (panel == ActivePanel.CROP) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -279,20 +290,39 @@ internal fun ImageEditScreen(
                                     onClick = {},
                                 ),
                         ) {
+                            AspectRatioSelector(
+                                selected = selectedAspectRatio,
+                                isLandscape = isLandscape,
+                                onSelect = {
+                                    selectedAspectRatio = it
+                                    activePanel = ActivePanel.NONE
+                                },
+                                onToggleOrientation = { isLandscape = !isLandscape },
+                            )
+                        }
+                    } else {
+                        // ADJUST, ZOOM — pill 툴바와 동일한 반투명 스타일
+                        Column(
+                            modifier = Modifier
+                                .padding(bottom = 16.dp)
+                                .widthIn(max = 240.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(scrimColor)
+                                .border(1.dp, borderColor, RoundedCornerShape(50))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {},
+                                ),
+                        ) {
                             when (panel) {
-                                ActivePanel.CROP -> AspectRatioSelector(
-                                    selected = selectedAspectRatio,
-                                    isLandscape = isLandscape,
-                                    onSelect = {
-                                        selectedAspectRatio = it
-                                        activePanel = ActivePanel.NONE
-                                    },
-                                    onToggleOrientation = { isLandscape = !isLandscape },
-                                )
                                 ActivePanel.ADJUST -> AdjustPanel(
                                     brightness = brightness,
                                     onBrightnessChange = { brightness = it },
-                                    onReset = { brightness = 0f },
+                                )
+                                ActivePanel.ZOOM -> ZoomPanel(
+                                    zoom = gestureZoom,
+                                    onZoomChange = { gestureZoom = it },
                                 )
                                 else -> {}
                             }
@@ -369,36 +399,3 @@ private fun PreviewImageEditScreenDefault() {
     )
 }
 
-@Preview(
-    name = "Crop Panel",
-    showBackground = true,
-    backgroundColor = 0xFF000000,
-    widthDp = 360,
-    heightDp = 780,
-    showSystemUi = true,
-)
-@Composable
-private fun PreviewImageEditScreenCropPanel() {
-    ImageEditScreen(
-        bitmap = createPreviewBitmap(),
-        onConfirm = { _, _, _, _, _ -> },
-        onCancel = {},
-    )
-}
-
-@Preview(
-    name = "Adjust Panel",
-    showBackground = true,
-    backgroundColor = 0xFF000000,
-    widthDp = 360,
-    heightDp = 780,
-    showSystemUi = true,
-)
-@Composable
-private fun PreviewImageEditScreenAdjustPanel() {
-    ImageEditScreen(
-        bitmap = createPreviewBitmap(),
-        onConfirm = { _, _, _, _, _ -> },
-        onCancel = {},
-    )
-}

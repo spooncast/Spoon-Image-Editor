@@ -2,4 +2,12 @@
 <resources>
     <string name="image_editor_done">完了</string>
     <string name="image_editor_original">オリジナル</string>
+    <string name="image_editor_close">閉じる</string>
+    <string name="image_editor_crop">切り抜き</string>
+    <string name="image_editor_rotate">回転</string>
+    <string name="image_editor_brightness">明るさ</string>
+    <string name="image_editor_zoom">拡大</string>
+    <string name="image_editor_flip">反転</string>
+    <string name="image_editor_portrait">縦</string>
+    <string name="image_editor_landscape">横</string>
 </resources>

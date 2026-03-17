@@ -17,9 +17,9 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
-fun AdjustPanel(
-    brightness: Float,
-    onBrightnessChange: (Float) -> Unit,
+fun ZoomPanel(
+    zoom: Float,
+    onZoomChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val primaryColor = ImageEditorTheme.primary
@@ -29,10 +29,10 @@ fun AdjustPanel(
         modifier = modifier.padding(start = 12.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val percentage = (brightness * 100).roundToInt()
+        val displayZoom = ((zoom * 10f).roundToInt() / 10f)
         Text(
-            text = String.format(Locale.US, "%+d%%", percentage),
-            color = if (brightness != 0f) primaryColor else textColor.copy(alpha = 0.7f),
+            text = String.format(Locale.US, "%.1fx", displayZoom),
+            color = if (zoom != 1f) primaryColor else textColor.copy(alpha = 0.7f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -40,10 +40,10 @@ fun AdjustPanel(
         )
 
         TickSlider(
-            value = brightness,
-            onValueChange = { onBrightnessChange((it * 20f).roundToInt() / 20f) },
-            valueRange = -0.5f..0.5f,
-            tickConfig = TickConfig.Brightness,
+            value = zoom,
+            onValueChange = { onZoomChange((it * 10f).roundToInt() / 10f) },
+            valueRange = 1f..6f,
+            tickConfig = TickConfig.Zoom,
             modifier = Modifier.weight(1f).height(44.dp),
         )
     }

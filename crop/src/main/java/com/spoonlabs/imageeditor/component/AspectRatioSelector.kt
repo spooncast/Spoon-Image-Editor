@@ -129,7 +129,7 @@ private fun OrientationToggle(
     ) {
         Icon(
             painter = painterResource(id = iconRes),
-            contentDescription = if (isPortrait) "세로" else "가로",
+            contentDescription = stringResource(if (isPortrait) R.string.image_editor_portrait else R.string.image_editor_landscape),
             tint = tint,
             modifier = Modifier.size(20.dp),
         )
